@@ -1,0 +1,27 @@
+{
+  "name": "@arthera/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "dev": "expo start",
+    "lint": "node -e \"console.log('mobile lint: placeholder')\"",
+    "test": "node -e \"console.log('mobile test: placeholder')\"",
+    "build": "node -e \"console.log('mobile build: placeholder')\""
+  },
+  "dependencies": {
+    "@react-navigation/bottom-tabs": "^7.1.0",
+    "@react-navigation/native": "^7.0.10",
+    "@react-navigation/native-stack": "^7.0.10",
+    "expo": "~53.0.9",
+    "expo-status-bar": "~2.2.3",
+    "react": "19.0.0",
+    "react-native": "0.79.2",
+    "react-native-safe-area-context": "~5.4.0",
+    "react-native-screens": "~4.11.1"
+  },
+  "devDependencies": {
+    "@types/react": "~19.0.10",
+    "typescript": "~5.8.3"
+  }
+}

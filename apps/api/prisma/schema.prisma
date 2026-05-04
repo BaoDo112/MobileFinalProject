@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  VISITOR
+  ORGANIZER
+}
+
+enum GalleryStatus {
+  PAST
+  PRESENT
+  FUTURE
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  fullName  String
+  role      UserRole
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  registrations ExhibitionRegistration[]
+  comments      Comment[]
+  stamps        Stamp[]
+  exhibitions   Exhibition[] @relation("OrganizerExhibitions")
+}
+
+model Gallery {
+  id          String        @id @default(cuid())
+  title       String
+  galleryType String
+  district    String
+  dateLabel   String
+  timeLabel   String
+  status      GalleryStatus
+  address     String
+  bio         String
+  organizer   String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  exhibitions Exhibition[]
+  comments    Comment[]
+  stamps      Stamp[]
+}
+
+model Exhibition {
+  id             String   @id @default(cuid())
+  organizerId    String
+  galleryId      String?
+  title          String
+  exhibitionType String
+  bio            String
+  address        String
+  mediaUrls      String[]
+  formSchema     Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organizer     User                      @relation("OrganizerExhibitions", fields: [organizerId], references: [id])
+  gallery       Gallery?                  @relation(fields: [galleryId], references: [id])
+  registrations ExhibitionRegistration[]
+}
+
+model ExhibitionRegistration {
+  id            String   @id @default(cuid())
+  exhibitionId  String
+  visitorId     String
+  payload       Json
+  submittedAt   DateTime @default(now())
+
+  exhibition Exhibition @relation(fields: [exhibitionId], references: [id])
+  visitor    User       @relation(fields: [visitorId], references: [id])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  galleryId String
+  authorId  String
+  rating    Int
+  content   String
+  createdAt DateTime @default(now())
+
+  gallery Gallery @relation(fields: [galleryId], references: [id])
+  author  User    @relation(fields: [authorId], references: [id])
+}
+
+model Stamp {
+  id         String   @id @default(cuid())
+  galleryId  String
+  ownerId    String
+  title      String
+  milestone  String
+  unlockedAt DateTime @default(now())
+
+  gallery Gallery @relation(fields: [galleryId], references: [id])
+  owner   User    @relation(fields: [ownerId], references: [id])
+}
