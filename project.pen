@@ -1431,7 +1431,7 @@
     {
       "type": "frame",
       "id": "7daVR",
-      "x": 422,
+      "x": 3150,
       "y": 0,
       "name": "Vibrant Organizer Tools",
       "width": 390,
@@ -4246,7 +4246,7 @@
     {
       "type": "frame",
       "id": "IYAyM",
-      "x": 844,
+      "x": 1800,
       "y": 0,
       "name": "Vibrant Stamp Vault",
       "width": 390,
@@ -7302,7 +7302,7 @@
     {
       "type": "frame",
       "id": "Su44R",
-      "x": 1266,
+      "x": 450,
       "y": 0,
       "name": "Vibrant Gallery Home",
       "width": 390,
@@ -9517,7 +9517,7 @@
     {
       "type": "frame",
       "id": "1AhS6",
-      "x": 1688,
+      "x": 900,
       "y": 0,
       "name": "Vibrant Exhibition Details",
       "width": 390,
@@ -11785,7 +11785,7 @@
     {
       "type": "frame",
       "id": "TJjfV",
-      "x": 2437,
+      "x": 3736,
       "y": 0,
       "name": "v1.1 Mid-Fi Wireframes",
       "width": 4880,
@@ -13723,7 +13723,7 @@
     {
       "type": "frame",
       "id": "xYUey",
-      "x": 7437,
+      "x": 8754,
       "y": 0,
       "name": "v1.3 High-Fi Route Contract",
       "width": 1040,
@@ -13903,7 +13903,7 @@
     {
       "type": "frame",
       "id": "PeR0i",
-      "x": 8560,
+      "x": 1350,
       "y": 0,
       "name": "V1.3 Visitor Event Registration",
       "width": 390,
@@ -14584,7 +14584,7 @@
     {
       "type": "frame",
       "id": "vuwo2",
-      "x": 8982,
+      "x": 2250,
       "y": 0,
       "name": "V1.3 Visitor Review Hub",
       "width": 390,
@@ -15253,7 +15253,7 @@
     {
       "type": "frame",
       "id": "YFeX1",
-      "x": 9404,
+      "x": 2700,
       "y": 0,
       "name": "V1.3 Visitor Profile",
       "width": 390,
@@ -15903,7 +15903,7 @@
     {
       "type": "frame",
       "id": "nfClL",
-      "x": 9826,
+      "x": 10021,
       "y": 0,
       "name": "V1.3 Organizer Dashboard",
       "width": 390,
