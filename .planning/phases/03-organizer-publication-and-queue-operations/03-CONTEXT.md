@@ -27,6 +27,9 @@ Screen ownership in this phase:
 - Form Builder is constrained to a lightweight supported field set with explicit validation and consent configuration.
 - Submission queue counts, approval, waitlist, and check-in must derive from the same session-aware registration model used by visitors.
 - Organizer Profile manages workspace identity and notification rules, not only a cosmetic role switch.
+- Organizer dashboard, editor, builder, and queue screens keep TanStack Query as the only server-state layer and React Hook Form + Zod for static form sections.
+- Time-based reminders or status reconciliation use `@nestjs/schedule` only; do not introduce Redis or BullMQ in v1.4.
+- Media handling stays URL and metadata first for this milestone; do not add a separate cloud upload pipeline without reopening scope.
 
 ### Claude's Discretion
 - Exact internal decomposition between dashboard, queue, and authoring services, as long as aggregate counts and decision actions stay consistent.
@@ -38,6 +41,7 @@ Screen ownership in this phase:
 
 - `project.pen` - board `WutYD` entries 8 through 13
 - `project.pen` - board `FeGE9` organizer workflow, event list, entity model, and module list
+- `.planning/STACK.md`
 - `apps/mobile/src/screens/OrganizerDashboardScreen.tsx`
 - `apps/mobile/src/screens/OrganizerToolsScreen.tsx`
 - `apps/mobile/src/screens/FormBuilderScreen.tsx`

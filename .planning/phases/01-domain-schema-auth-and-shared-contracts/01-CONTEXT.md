@@ -21,6 +21,9 @@ Screen ownership in this phase:
 - Use the v1.5 production boards as the build authority.
 - Plan every route from DB -> Nest module -> Expo screen; do not leave route-critical behavior explained only by mock data.
 - Auth must support email/password register/login and Google OAuth in the same access flow.
+- The v1.4 support stack is locked in `.planning/STACK.md`; do not swap TanStack Query, Zustand, Secure Store, or the Nest auth stack ad hoc during execution.
+- Mobile session and workspace bootstrap use TanStack Query plus Zustand persisted through Expo Secure Store.
+- Nest auth and request validation use `@nestjs/config`, `class-validator`, `class-transformer`, JWT/Passport strategies, and `bcrypt`.
 - Tabs appear only on Discover, Vault, Visitor Profile, Dashboard, Pipeline, and Organizer Profile.
 - Shared status, empty, error, and sticky-action behavior must be reusable primitives, not duplicated ad-hoc per screen.
 
@@ -33,6 +36,7 @@ Screen ownership in this phase:
 ## Canonical References
 
 - `project.pen` - implementation authority boards `DzqHA`, `WutYD`, `FeGE9`
+- `.planning/STACK.md` - locked execution support stack for v1.4
 - `.planning/milestones/v1.3-phases/04-cross-flow-design-validation-and-handoff/04-NODE-HANDOFF.md` - canonical screen/node map
 - `.planning/REQUIREMENTS.md` - active requirement inventory
 - `apps/mobile/src/navigation/AppNavigator.tsx` - actual 13-route navigation surface

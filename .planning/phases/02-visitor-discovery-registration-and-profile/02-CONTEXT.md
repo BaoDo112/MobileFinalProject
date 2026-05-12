@@ -24,6 +24,9 @@ Screen ownership in this phase:
 - First viewport on Discover and Detail must answer where the visitor is, whether space is available, and what the next action is.
 - Registration keeps one dominant CTA with sticky submit, inline validation, confirmation summary before final submit, and explicit waitlist fallback.
 - Visitor Profile must surface upcoming visits, past activity, preferences, accessibility notes, and role switching from real backend state.
+- Visitor data flows use TanStack Query hooks over typed mobile API clients; do not reintroduce screen-local fetch state for route-critical behavior.
+- Visitor forms use React Hook Form + Zod, with dynamic attendee fields rendered from backend field definitions instead of a second hard-coded schema layer.
+- Timeline, session, and availability formatting use `date-fns`.
 
 ### Claude's Discretion
 - Whether to keep `ProfileScreen.tsx` as a shared shell with role-specific sections or split into internal subcomponents.
@@ -35,6 +38,7 @@ Screen ownership in this phase:
 
 - `project.pen` - board `WutYD` entries 2, 3, 4, and 7
 - `project.pen` - board `FeGE9` visitor workflow and status rules
+- `.planning/STACK.md`
 - `apps/mobile/src/screens/GalleryHomeScreen.tsx`
 - `apps/mobile/src/screens/GalleryDetailScreen.tsx`
 - `apps/mobile/src/screens/EventRegistrationScreen.tsx`

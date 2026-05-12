@@ -24,6 +24,9 @@ Screen ownership in this phase:
 - Stamp progression and milestone history must come from backend events, not local screen math.
 - The final app must stop relying on route-critical `mockData.ts` wiring.
 - Smoke validation must cover all 13 screens plus the critical transitions from publish -> discover -> register -> approve -> check in -> review -> stamp.
+- Final hardening uses Prisma seed plus Jest/Supertest and `jest-expo`/React Native Testing Library as the required verification stack.
+- Any reminder or status-reconciliation cron introduced earlier must be deterministic and testable, not fire-and-forget.
+- Do not add new fallback mock abstractions in this phase; remove route-critical mock usage instead.
 
 ### Claude's Discretion
 - Exact shape of the smoke tests and seed helpers, as long as they are executable through repo scripts.
@@ -35,6 +38,7 @@ Screen ownership in this phase:
 
 - `project.pen` - board `WutYD` entries 5 and 6
 - `project.pen` - board `FeGE9` system events and status rules
+- `.planning/STACK.md`
 - `apps/mobile/src/screens/ReviewHubScreen.tsx`
 - `apps/mobile/src/screens/StampVaultScreen.tsx`
 - `apps/mobile/src/data/mockData.ts`

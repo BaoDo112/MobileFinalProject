@@ -14,6 +14,14 @@
 
 **Milestone Goal:** Turn the locked v1.5 Pencil contract into executable Prisma, Nest, and Expo work for all 13 screens without reopening screen planning.
 
+**Locked Execution Stack:**
+- Mobile data: `@tanstack/react-query` + typed `fetch` client wrappers.
+- Mobile session/auth: `zustand` + `expo-secure-store` + `expo-auth-session`/`expo-web-browser`.
+- Mobile forms/date: `react-hook-form` + `zod` + `@hookform/resolvers` + `date-fns`.
+- API auth/config/validation: `@nestjs/config`, `class-validator`, `class-transformer`, `@nestjs/jwt`, Passport strategies, and `bcrypt`.
+- Scheduling/verification: `@nestjs/schedule`, Prisma seed, Jest + Supertest, `jest-expo`, and React Native Testing Library.
+- Explicitly deferred: Axios, RTK Query, BullMQ/Redis, push delivery, and full cloud upload infrastructure.
+
 - [ ] **Phase 1: Domain Schema, Auth, and Shared Contracts** - Replace the MVP data model and auth stubs with the V2 workflow graph, typed contracts, and shared mobile primitives.
 - [ ] **Phase 2: Visitor Discovery, Registration, and Profile** - Deliver the read and reservation flows for Discover, Exhibition Detail, Event Registration, and Visitor Profile against real backend contracts.
 - [ ] **Phase 3: Organizer Publication and Queue Operations** - Deliver the Dashboard, Exhibition Editor, Form Builder, Submission Pipeline, Submission Review, and Organizer Profile flows against the new workflow model.
@@ -26,6 +34,7 @@
 **Depends on**: Archived v1.3 production boards, current stub schema, and current auth shortcut.
 **Requirements**: [AUTH-01, AUTH-02, AUTH-03, AUTH-04, INFRA-02]
 **Screen Coverage**: 1 Auth, plus shared navigation/state primitives consumed by screens 2-13.
+**Execution Stack Focus**: `@nestjs/config`, `class-validator`, `class-transformer`, JWT/Passport/Google auth, TanStack Query, Zustand, Expo Secure Store, Expo AuthSession, React Hook Form, and Zod.
 **Success Criteria** (what must be TRUE):
 	1. The database can represent auth providers, profiles, venues, exhibitions, sessions, registrations, answers, reviews, attendance, stamps, and notification settings without JSON-only shortcuts.
 	2. Local auth and Google auth return the same workspace bootstrap contract with a persisted active role.
@@ -41,6 +50,7 @@ Plans:
 **Depends on**: Phase 1
 **Requirements**: [GALL-01, GALL-02, GALL-03, GALL-04, AUTH-03]
 **Screen Coverage**: 2 Discover, 3 Exhibition Detail, 4 Event Registration, 7 Visitor Profile.
+**Execution Stack Focus**: TanStack Query for list/detail/profile state, React Hook Form + Zod for booking/profile validation, and `date-fns` for timeline and availability formatting.
 **Success Criteria** (what must be TRUE):
 	1. Discover and Detail read from exhibition/session/venue contracts with availability and filter logic that match the v1.5 board.
 	2. Event Registration persists answers row-by-row, supports duplicate-booking and waitlist fallbacks, and surfaces confirmation before submit.
@@ -56,6 +66,7 @@ Plans:
 **Depends on**: Phase 1
 **Requirements**: [ORG-01, ORG-02, ORG-03, AUTH-03]
 **Screen Coverage**: 8 Organizer Dashboard, 9 Exhibition Editor, 10 Form Builder, 11 Submission Pipeline, 12 Submission Review, 13 Organizer Profile.
+**Execution Stack Focus**: TanStack Query for queue/dashboard state, React Hook Form + Zod for editor sections, URL-first media metadata, and `@nestjs/schedule`-compatible notification rules.
 **Success Criteria** (what must be TRUE):
 	1. Organizers can create, edit, publish, and lock exhibitions using session, venue, media, and checklist data that matches the v1.5 contract.
 	2. Queue counts, approval decisions, waitlist state, and check-in flows all derive from the same registration model used by visitor booking.
@@ -72,6 +83,7 @@ Plans:
 **Depends on**: Phase 2, Phase 3
 **Requirements**: [COMM-01, COMM-02, PASS-01, PASS-02, INFRA-03]
 **Screen Coverage**: 5 Review Hub, 6 Stamp Vault, plus shared hardening across all 13 screens.
+**Execution Stack Focus**: Prisma seed, Jest + Supertest, `jest-expo`, React Native Testing Library, and deterministic validation for any schedule-driven logic that lands.
 **Success Criteria** (what must be TRUE):
 	1. Review Hub only unlocks after attendance, supports moderation states, and updates community visibility.
 	2. Stamp Vault reflects unlock progress and milestone history from the same attendance/review events driving the backend.

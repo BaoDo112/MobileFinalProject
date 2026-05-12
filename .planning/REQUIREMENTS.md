@@ -71,6 +71,7 @@ v1.3 locked the UI contract in `project.pen`. v1.4 is the implementation milesto
 ## Planning Guardrails
 
 - Treat the v1.5 Production UI Rules, Screen-by-Screen Production Contract, and Workflow + Schema Contract boards as the implementation authority.
+- Treat `.planning/STACK.md` as the execution-stack authority; do not introduce alternate query, auth, persistence, queue, or test stacks without reopening the plan.
 - Every screen must keep loading, empty, error, success, and locked states explicit.
 - No route-critical behavior may stay explained only by `mockData.ts` once v1.4 finishes.
 

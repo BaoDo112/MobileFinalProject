@@ -24,6 +24,7 @@ v1.4 is now planned as the build milestone that translates that locked contract 
 - **Latest completed milestone**: v1.3 Full High-Fidelity Pencil UI Lock
 - **Active milestone**: v1.4 End-to-End Contract Alignment and Delivery
 - **Execution mode used**: planning-first implementation with screen-by-screen DB -> BE -> FE ownership
+- **Execution stack authority**: `.planning/STACK.md` locks the cross-cutting libraries for auth, query, form validation, persistence, scheduling, and smoke testing.
 - **Immediate goal**: execute the schema/auth foundation, then parallelize visitor and organizer slices against the locked v1.5 boards
 
 ## Requirements
@@ -60,6 +61,7 @@ v1.4 is now planned as the build milestone that translates that locked contract 
 - `project.pen` now contains canonical route coverage, archived reference boards, and v1.5 production authority boards for downstream implementation.
 - Mobile implementation uses Expo React Native + Expo Go for fast iteration.
 - Backend uses NestJS + Prisma, with Neon as PostgreSQL provider.
+- `.planning/STACK.md` now freezes the support stack for v1.4: TanStack Query, Zustand, Expo Secure Store, Expo AuthSession, React Hook Form, Zod, date-fns, Nest auth/validation/config packages, and the milestone test stack.
 - Deploy target for backend is Koyeb (fallback: Render).
 - CI/CD baseline already runs lint/test/build checks for both mobile and API.
 - Current Expo routes still depend on `apps/mobile/src/data/mockData.ts` for route-critical state.
@@ -68,8 +70,9 @@ v1.4 is now planned as the build milestone that translates that locked contract 
 ## Constraints
 
 - **Timeline**: Semester final project delivery - prioritize demonstrable end-to-end flows over platform complexity.
-- **Tech Stack**: Expo React Native + NestJS + Prisma + Neon are fixed for this project.
+- **Tech Stack**: Expo React Native + NestJS + Prisma + Neon remain the platform base; the execution-level support stack is now frozen in `.planning/STACK.md`.
 - **Deployment**: Start with low-cost/free platform constraints (Koyeb/Render tiers).
+- **Scope Control**: Keep organizer media URL/metadata-first and avoid Redis queues, push delivery, or cloud upload infrastructure in v1.4.
 - **UX Direction**: Keep flows simple, obvious, and mobile-first while preserving the established vibrant art direction.
 
 ## Key Decisions
@@ -84,6 +87,7 @@ v1.4 is now planned as the build milestone that translates that locked contract 
 | Gate comments, ratings, and stamps by participation or attendance | Preserves simple but coherent domain rules | Complete |
 | Freeze design in Pencil before reviewing or extending the current UI code | Current code should be judged against finalized flows, not partial design references | Complete |
 | Plan v1.4 by screen and by DB -> BE -> FE ownership | Avoids another planning rewrite once implementation starts | Complete |
+| Lock the support libraries before execution | Prevents phase-by-phase drift between query, auth, validation, persistence, and testing patterns | Complete |
 
 ---
-*Last updated: 2026-05-12 after planning the v1.4 implementation milestone*
+*Last updated: 2026-05-12 after locking the v1.4 execution stack*
