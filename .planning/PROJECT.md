@@ -10,26 +10,21 @@ A single mobile experience where visitors discover and collect gallery moments, 
 
 ## Latest Milestone Output
 
-v1.2 completed the full mobile UI implementation pass using the approved reference set:
+v1.3 completed the full Pencil-first design lock and is now archived as the stable UI handoff baseline:
 
-- extracted a reusable mobile design system from the 5 sample screens in `project.pen`
-- rebuilt navigation around complete Visitor and Organizer journeys
-- implemented high-fidelity mock-driven screens for registration, feedback, passport, publishing, forms, and submissions
-- validated the mobile app surface so the next milestone can focus on API integration instead of UI catch-up
+- finalized the canonical Pen screen set for all implemented Visitor and Organizer routes
+- separated visual reference boards from v1.5 production authority boards
+- locked the auth contract to support email/password plus Google OAuth
+- published node-level handoff references for downstream schema and code work
 
-v1.3 now reframes the next step: lock the UI in Pencil before code review or API binding continues.
-
-- extend `project.pen` from 5 high-fidelity samples plus one mid-fi board into a complete high-fidelity source of truth
-- ensure every implemented mobile route has a canonical Pen screen
-- resolve shared navigation, state, and component inconsistencies in the design source before evaluating the current code
-- produce a node-level handoff map so code review can happen against finalized flows instead of a moving target
+The next step is no longer UI discovery. It is implementation alignment: Prisma schema v2, Nest module planning, and Expo screen updates against the archived v1.3 contract.
 
 ## Current Position
 
-- **Latest completed milestone**: v1.2 Full Mobile UI Implementation and Validation
-- **Active milestone**: v1.3 Full High-Fidelity Pencil UI Lock
+- **Latest completed milestone**: v1.3 Full High-Fidelity Pencil UI Lock
+- **Active milestone**: none
 - **Execution mode used**: autonomous design-first closure before code review resumes
-- **Immediate goal**: finish the full high-fidelity Pen pack so UI flow and wireframe decisions are final
+- **Immediate goal**: start the next milestone for schema, API, and Expo alignment from the archived v1.3 contract
 
 ## Requirements
 
@@ -39,7 +34,7 @@ v1.3 now reframes the next step: lock the UI in Pencil before code review or API
 - [x] Full Organizer flow is defined from dashboard to attendance handling.
 - [x] Screen states are mapped for loading, empty, validation, success, and failure.
 - [x] Mobile/API implementation can resume from a stable planning baseline.
-- [ ] High-fidelity Pencil source covers every implemented mobile route one-to-one.
+- [x] High-fidelity Pencil source covers every implemented mobile route one-to-one.
 
 ### Active for Implementation
 
@@ -60,7 +55,7 @@ v1.3 now reframes the next step: lock the UI in Pencil before code review or API
 
 ## Context
 
-- `project.pen` currently contains 5 original vibrant reference screens and the archived v1.1 mid-fi planning board, but not a full high-fidelity pack for every implemented route.
+- `project.pen` now contains canonical route coverage, archived reference boards, and v1.5 production authority boards for downstream implementation.
 - Mobile implementation uses Expo React Native + Expo Go for fast iteration.
 - Backend uses NestJS + Prisma, with Neon as PostgreSQL provider.
 - Deploy target for backend is Koyeb (fallback: Render).
@@ -81,9 +76,9 @@ v1.3 now reframes the next step: lock the UI in Pencil before code review or API
 | Keep v1 as mobile-first without admin web | Aligns with limited timeline and grading scope | Complete |
 | Model both visitor and organizer roles from day one | Core flows require role-specific paths | Complete |
 | Use planning-first milestone before further implementation | Reduced rework and clarified full delivery scope | Complete |
-| Use the 5 sample screens as the visual source for v1.2 | Maintains continuity with the approved design direction | Active |
+| Use the 5 sample screens as the visual source for v1.2 | Maintains continuity with the approved design direction | Complete |
 | Gate comments, ratings, and stamps by participation or attendance | Preserves simple but coherent domain rules | Complete |
-| Freeze design in Pencil before reviewing or extending the current UI code | Current code should be judged against finalized flows, not partial design references | Active |
+| Freeze design in Pencil before reviewing or extending the current UI code | Current code should be judged against finalized flows, not partial design references | Complete |
 
 ---
-*Last updated: 2026-05-04 after opening the v1.3 Pencil-first design lock milestone*
+*Last updated: 2026-05-12 after archiving the v1.3 design-lock milestone*
