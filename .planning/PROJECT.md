@@ -17,14 +17,14 @@ v1.3 completed the full Pencil-first design lock and is now archived as the stab
 - locked the auth contract to support email/password plus Google OAuth
 - published node-level handoff references for downstream schema and code work
 
-The next step is no longer UI discovery. It is implementation alignment: Prisma schema v2, Nest module planning, and Expo screen updates against the archived v1.3 contract.
+v1.4 is now planned as the build milestone that translates that locked contract into executable Prisma, Nest, and Expo work without reopening the screen definition.
 
 ## Current Position
 
 - **Latest completed milestone**: v1.3 Full High-Fidelity Pencil UI Lock
-- **Active milestone**: none
-- **Execution mode used**: autonomous design-first closure before code review resumes
-- **Immediate goal**: start the next milestone for schema, API, and Expo alignment from the archived v1.3 contract
+- **Active milestone**: v1.4 End-to-End Contract Alignment and Delivery
+- **Execution mode used**: planning-first implementation with screen-by-screen DB -> BE -> FE ownership
+- **Immediate goal**: execute the schema/auth foundation, then parallelize visitor and organizer slices against the locked v1.5 boards
 
 ## Requirements
 
@@ -35,6 +35,8 @@ The next step is no longer UI discovery. It is implementation alignment: Prisma 
 - [x] Screen states are mapped for loading, empty, validation, success, and failure.
 - [x] Mobile/API implementation can resume from a stable planning baseline.
 - [x] High-fidelity Pencil source covers every implemented mobile route one-to-one.
+- [x] All 13 mobile screens are assigned to explicit execution phases and plans.
+- [x] DB, Nest module, and Expo ownership is defined for every locked workflow transition.
 
 ### Active for Implementation
 
@@ -60,6 +62,8 @@ The next step is no longer UI discovery. It is implementation alignment: Prisma 
 - Backend uses NestJS + Prisma, with Neon as PostgreSQL provider.
 - Deploy target for backend is Koyeb (fallback: Render).
 - CI/CD baseline already runs lint/test/build checks for both mobile and API.
+- Current Expo routes still depend on `apps/mobile/src/data/mockData.ts` for route-critical state.
+- Current Nest modules are placeholder controllers/services and do not yet satisfy the v1.5 workflow contract.
 
 ## Constraints
 
@@ -79,6 +83,7 @@ The next step is no longer UI discovery. It is implementation alignment: Prisma 
 | Use the 5 sample screens as the visual source for v1.2 | Maintains continuity with the approved design direction | Complete |
 | Gate comments, ratings, and stamps by participation or attendance | Preserves simple but coherent domain rules | Complete |
 | Freeze design in Pencil before reviewing or extending the current UI code | Current code should be judged against finalized flows, not partial design references | Complete |
+| Plan v1.4 by screen and by DB -> BE -> FE ownership | Avoids another planning rewrite once implementation starts | Complete |
 
 ---
-*Last updated: 2026-05-12 after archiving the v1.3 design-lock milestone*
+*Last updated: 2026-05-12 after planning the v1.4 implementation milestone*
