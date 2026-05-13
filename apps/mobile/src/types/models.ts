@@ -1,110 +1,136 @@
-export type UserRole = "visitor" | "organizer";
+export type UserRole = "VISITOR" | "ORGANIZER";
+export type AuthProvider = "LOCAL" | "GOOGLE";
+export type ExhibitionStatus = "DRAFT" | "REVIEW" | "PUBLISHED" | "CLOSED";
+export type SessionStatus = "SCHEDULED" | "CANCELLED" | "COMPLETED";
+export type RegistrationStatus = "PENDING" | "CONFIRMED" | "WAITLISTED" | "REJECTED" | "CHECKED_IN" | "CANCELLED";
+export type ReviewStatus = "PUBLISHED" | "HIDDEN" | "FLAGGED";
+export type StampSource = "ATTENDANCE" | "MILESTONE";
+export type FieldType = "TEXT" | "EMAIL" | "PHONE" | "TEXTAREA" | "SELECT";
 
-export type GalleryStatus = "past" | "present" | "future";
-export type RegistrationStatus = "open" | "waitlist" | "closed";
-export type FieldType = "text" | "email" | "phone" | "textarea" | "select";
-export type ExhibitionStatus = "draft" | "review" | "published" | "closed";
-export type SubmissionStatus = "pending" | "confirmed" | "checked-in";
-
-export interface Gallery {
+export interface User {
   id: string;
-  title: string;
-  type: "Art" | "Technology" | "Mixed";
-  district: string;
-  dateLabel: string;
-  timeLabel: string;
-  organizer: string;
-  bio: string;
-  address: string;
-  artists: string[];
-  images: string[];
-  status: GalleryStatus;
-  entryMode: string;
-  capacityNote: string;
-  curatorNote: string;
-  highlights: string[];
-  registrationStatus: RegistrationStatus;
-  accent: string;
+  email: string;
+  role: UserRole;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface Stamp {
+export interface AuthAccount {
+  id: string;
+  userId: string;
+  provider: AuthProvider;
+  providerId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VisitorProfile {
+  id: string;
+  userId: string;
+  name: string;
+  tagline?: string;
+  city?: string;
+  membershipLabel?: string;
+  accessibilityNotes?: string;
+}
+
+export interface OrganizerProfile {
+  id: string;
+  userId: string;
+  name: string;
+  tagline?: string;
+  city?: string;
+}
+
+export interface Venue {
   id: string;
   title: string;
-  unlocked: boolean;
-  milestone: string;
-  galleryId: string;
-  accent: string;
-  note: string;
+  district: string;
+  address: string;
+  mapUrl?: string;
+}
+
+export interface Exhibition {
+  id: string;
+  organizerId: string;
+  venueId: string;
+  title: string;
+  exhibitionType: string;
+  bio: string;
+  mediaUrls: string[];
+  status: ExhibitionStatus;
+  accent?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExhibitionSession {
+  id: string;
+  exhibitionId: string;
+  dateLabel: string;
+  timeLabel: string;
+  capacity: number;
+  vibe?: string;
+  status: SessionStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FormSchemaVersion {
+  id: string;
+  exhibitionId: string;
+  version: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface FormField {
+  id: string;
+  formSchemaVersionId: string;
+  type: FieldType;
+  label: string;
+  placeholder?: string;
+  isRequired: boolean;
+  options: string[];
+  helpText?: string;
+  order: number;
+}
+
+export interface Registration {
+  id: string;
+  sessionId: string;
+  visitorId: string;
+  formSchemaVersionId?: string;
+  status: RegistrationStatus;
+  submittedAt: string;
+  updatedAt: string;
+}
+
+export interface RegistrationAnswer {
+  id: string;
+  registrationId: string;
+  formFieldId: string;
+  value: string;
 }
 
 export interface Review {
   id: string;
-  author: string;
-  roleLabel: string;
+  exhibitionId: string;
+  visitorId: string;
   rating: number;
-  body: string;
-  postedAt: string;
-  highlight: string;
+  content: string;
+  status: ReviewStatus;
+  createdAt: string;
 }
 
-export interface RegistrationField {
+export interface Stamp {
   id: string;
-  label: string;
-  type: FieldType;
-  placeholder: string;
-  required: boolean;
-  helpText?: string;
-  options?: string[];
-}
-
-export interface VisitSlot {
-  id: string;
-  label: string;
-  remaining: string;
-  vibe: string;
-}
-
-export interface StatItem {
-  label: string;
-  value: string;
-}
-
-export interface UserProfile {
-  name: string;
-  role: UserRole;
-  tagline: string;
-  city: string;
-  membershipLabel: string;
-  stats: StatItem[];
-  highlights: string[];
-}
-
-export interface OrganizerExhibition {
-  id: string;
+  visitorId: string;
+  exhibitionId: string;
+  source: StampSource;
   title: string;
-  venue: string;
-  district: string;
-  dateLabel: string;
-  summary: string;
-  status: ExhibitionStatus;
-  submissions: number;
-  checkedIn: number;
-  accent: string;
-  fieldCount: number;
-  nextAction: string;
-}
-
-export interface SubmissionAnswer {
-  label: string;
-  value: string;
-}
-
-export interface Submission {
-  id: string;
-  attendeeName: string;
-  timeslot: string;
-  status: SubmissionStatus;
-  submittedAt: string;
-  note: string;
-  answers: SubmissionAnswer[];
+  milestone?: string;
+  note?: string;
+  accent?: string;
+  unlockedAt: string;
 }

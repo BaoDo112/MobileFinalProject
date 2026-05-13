@@ -50,3 +50,6 @@ The initial screen direction is based on `project.pen` (Pencil design draft), ma
 - Stamp Vault
 - Gallery Home
 - Exhibition Details
+
+### Recent Updates
+- Mapped 'Discover' tab to a dedicated DiscoverMapScreen UI utilizing react-native-maps. Implemented Google Map style interface as conceptualized in the design system.

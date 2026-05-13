@@ -1,7 +1,10 @@
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { BlurView } from "expo-blur";
 import { useMemo, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import {
   exhibitionFormsById,
@@ -15,6 +18,7 @@ import {
   visitSlotsByGallery,
   visitorProfile
 } from "../data/mockData";
+import { DiscoverMapScreen } from "../screens/DiscoverMapScreen";
 import { EventRegistrationScreen } from "../screens/EventRegistrationScreen";
 import { FormBuilderScreen } from "../screens/FormBuilderScreen";
 import { GalleryDetailScreen } from "../screens/GalleryDetailScreen";
@@ -43,6 +47,7 @@ type RootStackParamList = {
 };
 
 type VisitorTabParamList = {
+  Gallery: undefined;
   Discover: undefined;
   Vault: undefined;
   Profile: undefined;
@@ -96,6 +101,46 @@ const sharedTabOptions = {
   }
 } as const;
 
+const visitorTabOptions = {
+  headerShown: false,
+  tabBarActiveTintColor: palette.background,
+  tabBarInactiveTintColor: palette.backgroundAlt,
+  tabBarShowLabel: true,
+  tabBarStyle: {
+    position: "absolute",
+    bottom: 56,
+    left: 19.5,
+    right: 19.5,
+    height: 80,
+    borderRadius: 9999,
+    backgroundColor: "transparent",
+    borderTopWidth: 0,
+    elevation: 0,
+    shadowOpacity: 0,
+    overflow: "hidden"
+  },
+  tabBarBackground: () => (
+    <View style={{ flex: 1, borderRadius: 9999, overflow: "hidden" }}>
+      <BlurView tint="dark" intensity={60} style={StyleSheet.absoluteFill} />
+      <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(41, 37, 36, 0.2)" }} />
+    </View>
+  ),
+  tabBarItemStyle: {
+    borderRadius: 9999,
+    marginVertical: 12,
+    marginHorizontal: 8,
+    padding: 0,
+    overflow: "hidden",
+  },
+  tabBarActiveBackgroundColor: palette.accent,
+  tabBarLabelStyle: {
+    fontFamily: typography.body,
+    fontSize: 10,
+    fontWeight: "700",
+    marginTop: 4,
+  }
+} as const;
+
 function VisitorTabShell({
   onOpenGallery,
   onSwitchRole
@@ -104,20 +149,41 @@ function VisitorTabShell({
   onSwitchRole: () => void;
 }>) {
   return (
-    <VisitorTabs.Navigator screenOptions={sharedTabOptions}>
+    <VisitorTabs.Navigator screenOptions={visitorTabOptions}>
       <VisitorTabs.Screen
-        name="Discover"
-        options={{ title: "Discover" }}
+        name="Gallery"
+        options={{
+          title: "Gallery",
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "grid" : "grid-outline"} size={24} color={color} />
+        }}
       >
         {() => <GalleryHomeScreen galleries={galleries} onOpenGallery={onOpenGallery} />}
       </VisitorTabs.Screen>
       <VisitorTabs.Screen
+        name="Discover"
+        options={{
+          title: "Discover",
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "compass" : "compass-outline"} size={24} color={color} />
+        }}
+      >
+        {() => <DiscoverMapScreen galleries={galleries} onOpenGallery={onOpenGallery} />}
+      </VisitorTabs.Screen>
+      <VisitorTabs.Screen
         name="Vault"
-        options={{ title: "Vault" }}
+        options={{
+          title: "Vault",
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "wallet" : "wallet-outline"} size={24} color={color} />
+        }}
       >
         {() => <StampVaultScreen stamps={passportStamps} profile={visitorProfile} onOpenGallery={onOpenGallery} />}
       </VisitorTabs.Screen>
-      <VisitorTabs.Screen name="Profile" options={{ title: "Profile" }}>
+      <VisitorTabs.Screen 
+        name="Profile" 
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
+        }}
+      >
         {() => <ProfileScreen role="visitor" profile={visitorProfile} onSwitchRole={onSwitchRole} />}
       </VisitorTabs.Screen>
     </VisitorTabs.Navigator>

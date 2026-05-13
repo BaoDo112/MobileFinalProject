@@ -142,9 +142,19 @@ export function GalleryHomeScreen({ galleries, onOpenGallery }: GalleryHomeScree
 }
 
 const styles = StyleSheet.create({
+  header: {
+    padding: spacing.md,
+    gap: spacing.xs,
+    backgroundColor: palette.card,
+    borderRadius: radii.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: palette.muted,
+  },
   heroCard: {
     padding: spacing.lg,
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
     backgroundColor: palette.cardStrong,
     gap: spacing.xs
   },
