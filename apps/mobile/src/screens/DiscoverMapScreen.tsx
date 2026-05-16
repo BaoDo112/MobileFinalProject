@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useCallback, useState } from "react";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
@@ -58,6 +58,12 @@ export function DiscoverMapScreen({
           const lng = initialRegion ? initialRegion.longitude + (index * 0.01) - 0.005 : 0;
           
           const isSelected = selectedGallery?.id === gallery.id;
+          const markerStyle =
+            gallery.status === "present"
+              ? styles.markerBodyLive
+              : gallery.status === "future"
+                ? styles.markerBodyUpcoming
+                : styles.markerBodyPast;
           
           return (
             <Marker
@@ -68,7 +74,7 @@ export function DiscoverMapScreen({
                 handleMarkerPress(gallery);
               }}
             >
-              <View style={[styles.markerBody, isSelected && styles.markerBodySelected]}>
+              <View style={[styles.markerBody, markerStyle, isSelected && styles.markerBodySelected]}>
                 <Ionicons name="location" size={24} color={palette.background} />
               </View>
             </Marker>
@@ -146,6 +152,15 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
+  },
+  markerBodyLive: {
+    backgroundColor: palette.success
+  },
+  markerBodyUpcoming: {
+    backgroundColor: palette.warning
+  },
+  markerBodyPast: {
+    backgroundColor: palette.textMuted
   },
   markerBodySelected: {
     backgroundColor: palette.accent,

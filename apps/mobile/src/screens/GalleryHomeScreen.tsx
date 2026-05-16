@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ScreenShell } from "../components/ScreenShell";
 import { palette, radii, spacing, typography } from "../theme/tokens";
@@ -26,6 +27,7 @@ export function GalleryHomeScreen({ galleries, onOpenGallery }: GalleryHomeScree
   const [selectedStatus, setSelectedStatus] = useState<GalleryStatus>("present");
   const [selectedDistrict, setSelectedDistrict] = useState<string>("All");
   const [selectedType, setSelectedType] = useState<string>("All");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const districts = ["All", ...new Set(galleries.map((gallery) => gallery.district))];
   const types = ["All", ...new Set(galleries.map((gallery) => gallery.type))];
@@ -49,66 +51,71 @@ export function GalleryHomeScreen({ galleries, onOpenGallery }: GalleryHomeScree
         <Text style={styles.heroCopy}>Every card below keeps the entry mode, capacity, and curator note visible so visitors do not need to guess before registering.</Text>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Timeline</Text>
-        <View style={styles.chipRow}>
-          {statusOptions.map((option) => (
-            <Pressable
-              key={option.key}
-              onPress={() => setSelectedStatus(option.key)}
-              style={[styles.filterChip, selectedStatus === option.key && styles.filterChipActive]}
-            >
-              <Text style={[styles.filterChipText, selectedStatus === option.key && styles.filterChipTextActive]}>{option.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>District</Text>
-        <View style={styles.chipRow}>
-          {districts.map((district) => (
-            <Pressable
-              key={district}
-              onPress={() => setSelectedDistrict(district)}
-              style={[styles.filterChip, selectedDistrict === district && styles.filterChipActive]}
-            >
-              <Text style={[styles.filterChipText, selectedDistrict === district && styles.filterChipTextActive]}>{district}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Type</Text>
-        <View style={styles.chipRow}>
-          {types.map((type) => (
-            <Pressable
-              key={type}
-              onPress={() => setSelectedType(type)}
-              style={[styles.filterChip, selectedType === type && styles.filterChipActive]}
-            >
-              <Text style={[styles.filterChipText, selectedType === type && styles.filterChipTextActive]}>{type}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      {featuredGallery ? (
-        <Pressable style={styles.featuredCard} onPress={() => onOpenGallery(featuredGallery.id)}>
-          <View style={[styles.accentBar, { backgroundColor: featuredGallery.accent }]} />
-          <Text style={styles.kicker}>{featuredGallery.organizer}</Text>
-          <Text style={styles.featuredTitle}>{featuredGallery.title}</Text>
-          <Text style={styles.featuredCopy}>{featuredGallery.curatorNote}</Text>
-          <View style={styles.badgeRow}>
-            <Text style={styles.typeBadge}>{featuredGallery.type}</Text>
-            <Text style={styles.statusText}>{registrationLabel[featuredGallery.registrationStatus]}</Text>
+      <View style={styles.filterShell}>
+        <Pressable style={styles.filterToggle} onPress={() => setFiltersOpen((value) => !value)}>
+          <View style={styles.filterIconWrap}>
+            <Ionicons name="filter-outline" size={18} color={palette.background} />
           </View>
+          <View style={styles.filterToggleTextWrap}>
+            <Text style={styles.filterToggleTitle}>Filters</Text>
+            <Text style={styles.filterToggleSubtitle}>
+              {selectedStatus} · {selectedDistrict} · {selectedType}
+            </Text>
+          </View>
+          <Ionicons name={filtersOpen ? "chevron-up" : "chevron-down"} size={18} color={palette.textMuted} />
         </Pressable>
-      ) : null}
+
+        {filtersOpen ? (
+          <View style={styles.filterDrawer}>
+            <View style={styles.filterGroup}>
+              <Text style={styles.filterGroupLabel}>Timeline</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterStrip}>
+                {statusOptions.map((option) => (
+                  <Pressable
+                    key={option.key}
+                    onPress={() => setSelectedStatus(option.key)}
+                    style={[styles.filterChip, selectedStatus === option.key && styles.filterChipActive]}
+                  >
+                    <Text style={[styles.filterChipText, selectedStatus === option.key && styles.filterChipTextActive]}>{option.label}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+
+            <View style={styles.filterGroup}>
+              <Text style={styles.filterGroupLabel}>District</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterStrip}>
+                {districts.map((district) => (
+                  <Pressable
+                    key={district}
+                    onPress={() => setSelectedDistrict(district)}
+                    style={[styles.filterChip, selectedDistrict === district && styles.filterChipActive]}
+                  >
+                    <Text style={[styles.filterChipText, selectedDistrict === district && styles.filterChipTextActive]}>{district}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+
+            <View style={styles.filterGroup}>
+              <Text style={styles.filterGroupLabel}>Type</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterStrip}>
+                {types.map((type) => (
+                  <Pressable
+                    key={type}
+                    onPress={() => setSelectedType(type)}
+                    style={[styles.filterChip, selectedType === type && styles.filterChipActive]}
+                  >
+                    <Text style={[styles.filterChipText, selectedType === type && styles.filterChipTextActive]}>{type}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        ) : null}
+      </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Exhibition cards</Text>
         {filteredGalleries.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>No gallery matches this filter mix yet.</Text>
@@ -118,6 +125,19 @@ export function GalleryHomeScreen({ galleries, onOpenGallery }: GalleryHomeScree
           filteredGalleries.map((gallery) => (
             <Pressable key={gallery.id} onPress={() => onOpenGallery(gallery.id)} style={styles.card}>
               <View style={[styles.accentBar, { backgroundColor: gallery.accent }]} />
+              <View style={styles.cardImageSlot}>
+                {gallery.images?.[0] ? (
+                  <>
+                    <View style={styles.cardImageOverlay} />
+                    <Text style={styles.cardImageLabel}>{gallery.images[0]}</Text>
+                  </>
+                ) : (
+                  <View style={styles.cardImageEmpty}>
+                    <Ionicons name="image-outline" size={22} color={palette.textMuted} />
+                    <Text style={styles.cardImageEmptyText}>No image</Text>
+                  </View>
+                )}
+              </View>
               <View style={styles.badgeRow}>
                 <Text style={styles.typeBadge}>{gallery.type}</Text>
                 <Text style={styles.statusText}>{registrationLabel[gallery.registrationStatus]}</Text>
@@ -179,27 +199,75 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21
   },
-  section: {
-    gap: spacing.sm
+  filterShell: {
+    backgroundColor: palette.card,
+    borderColor: palette.border,
+    borderWidth: 1,
+    borderRadius: radii.lg,
+    padding: spacing.xs
   },
-  sectionTitle: {
+  filterToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    minHeight: 52
+  },
+  filterIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: palette.text,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0
+  },
+  filterToggleTextWrap: {
+    flex: 1,
+    gap: 2
+  },
+  filterToggleTitle: {
     color: palette.text,
     fontFamily: typography.body,
     fontSize: 14,
+    fontWeight: "700"
+  },
+  filterToggleSubtitle: {
+    color: palette.textMuted,
+    fontFamily: typography.body,
+    fontSize: 12
+  },
+  filterDrawer: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingBottom: spacing.sm
+  },
+  filterGroup: {
+    gap: spacing.xs
+  },
+  filterGroupLabel: {
+    color: palette.text,
+    fontFamily: typography.body,
+    fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.8
   },
-  chipRow: {
+  filterStrip: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingRight: spacing.sm,
+    flexGrow: 1
   },
   filterChip: {
     backgroundColor: palette.muted,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 9
+    paddingVertical: 6,
+    minHeight: 34,
+    justifyContent: "center"
   },
   filterChipActive: {
     backgroundColor: palette.text
@@ -250,6 +318,45 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.xs,
     overflow: "hidden"
+  },
+  cardImageSlot: {
+    height: 160,
+    borderRadius: radii.md,
+    backgroundColor: palette.backgroundAlt,
+    marginBottom: spacing.xs,
+    overflow: "hidden",
+    justifyContent: "flex-end"
+  },
+  cardImageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(37, 23, 19, 0.08)"
+  },
+  cardImageLabel: {
+    color: palette.text,
+    fontFamily: typography.body,
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    backgroundColor: "rgba(255, 248, 241, 0.82)",
+    alignSelf: "flex-start",
+    margin: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radii.pill
+  },
+  cardImageEmpty: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs
+  },
+  cardImageEmptyText: {
+    color: palette.textMuted,
+    fontFamily: typography.body,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8
   },
   badgeRow: {
     flexDirection: "row",

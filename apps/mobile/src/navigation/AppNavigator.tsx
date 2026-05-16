@@ -1,10 +1,10 @@
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { BlurView } from "expo-blur";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   exhibitionFormsById,
@@ -108,10 +108,10 @@ const visitorTabOptions = {
   tabBarShowLabel: true,
   tabBarStyle: {
     position: "absolute",
-    bottom: 56,
+    bottom: 0,
     left: 19.5,
     right: 19.5,
-    height: 80,
+    height: 56,
     borderRadius: 9999,
     backgroundColor: "transparent",
     borderTopWidth: 0,
@@ -120,36 +120,68 @@ const visitorTabOptions = {
     overflow: "hidden"
   },
   tabBarBackground: () => (
-    <View style={{ flex: 1, borderRadius: 9999, overflow: "hidden" }}>
-      <BlurView tint="dark" intensity={60} style={StyleSheet.absoluteFill} />
+    <View style={{ flex: 1, borderRadius: 9999, overflow: "hidden", backgroundColor: "rgba(41, 37, 36, 0.72)" }}>
       <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(41, 37, 36, 0.2)" }} />
     </View>
   ),
   tabBarItemStyle: {
     borderRadius: 9999,
-    marginVertical: 12,
-    marginHorizontal: 8,
-    padding: 0,
+    marginVertical: 2,
+    marginHorizontal: 6,
+    paddingVertical: 0,
     overflow: "hidden",
   },
   tabBarActiveBackgroundColor: palette.accent,
+  tabBarIconStyle: {
+    marginBottom: -2
+  },
   tabBarLabelStyle: {
     fontFamily: typography.body,
     fontSize: 10,
     fontWeight: "700",
-    marginTop: 4,
+    marginTop: 0,
+    lineHeight: 11
   }
 } as const;
 
 function VisitorTabShell({
   onOpenGallery,
-  onSwitchRole
+  onSwitchRole,
+  onLogout
 }: Readonly<{
   onOpenGallery: (galleryId: string) => void;
   onSwitchRole: () => void;
+  onLogout: () => void;
 }>) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <VisitorTabs.Navigator screenOptions={visitorTabOptions}>
+    <VisitorTabs.Navigator
+      screenOptions={{
+        ...visitorTabOptions,
+        tabBarStyle: {
+          ...visitorTabOptions.tabBarStyle,
+          bottom: insets.bottom + 8,
+          height: 46 + insets.bottom,
+          paddingTop: 0,
+          paddingBottom: 0
+        },
+        tabBarItemStyle: {
+          ...visitorTabOptions.tabBarItemStyle,
+          marginVertical: 0,
+          marginHorizontal: 4,
+          paddingVertical: 0
+        },
+        tabBarIconStyle: {
+          marginBottom: -4
+        },
+        tabBarLabelStyle: {
+          ...visitorTabOptions.tabBarLabelStyle,
+          fontSize: 9,
+          lineHeight: 10
+        }
+      }}
+    >
       <VisitorTabs.Screen
         name="Gallery"
         options={{
@@ -184,7 +216,14 @@ function VisitorTabShell({
           tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
         }}
       >
-        {() => <ProfileScreen role="visitor" profile={visitorProfile} onSwitchRole={onSwitchRole} />}
+        {() => (
+          <ProfileScreen
+            role="VISITOR"
+            profile={visitorProfile}
+            onSwitchRole={onSwitchRole}
+            onLogout={onLogout}
+          />
+        )}
       </VisitorTabs.Screen>
     </VisitorTabs.Navigator>
   );
@@ -195,13 +234,15 @@ function OrganizerTabShell({
   onEditExhibition,
   onOpenFormBuilder,
   onOpenSubmissions,
-  onSwitchRole
+  onSwitchRole,
+  onLogout
 }: Readonly<{
   onCreateExhibition: () => void;
   onEditExhibition: (exhibitionId: string) => void;
   onOpenFormBuilder: (exhibitionId: string) => void;
   onOpenSubmissions: (exhibitionId: string) => void;
   onSwitchRole: () => void;
+  onLogout: () => void;
 }>) {
   return (
     <OrganizerTabs.Navigator screenOptions={sharedTabOptions}>
@@ -226,15 +267,20 @@ function OrganizerTabShell({
         )}
       </OrganizerTabs.Screen>
       <OrganizerTabs.Screen name="Profile" options={{ title: "Profile" }}>
-        {() => <ProfileScreen role="organizer" profile={organizerProfile} onSwitchRole={onSwitchRole} />}
+        {() => (
+          <ProfileScreen
+            role="ORGANIZER"
+            profile={organizerProfile}
+            onSwitchRole={onSwitchRole}
+            onLogout={onLogout}
+          />
+        )}
       </OrganizerTabs.Screen>
     </OrganizerTabs.Navigator>
   );
 }
 
 export function AppNavigator() {
-  const [role, setRole] = useState<UserRole>("visitor");
-
   const galleryMap = useMemo(
     () => new Map(galleries.map((gallery) => [gallery.id, gallery])),
     []
@@ -246,7 +292,7 @@ export function AppNavigator() {
   );
 
   return (
-    <NavigationContainer key={role} theme={navigationTheme}>
+    <NavigationContainer theme={navigationTheme}>
       <RootStack.Navigator
         screenOptions={{
           headerTintColor: palette.text,
@@ -260,8 +306,7 @@ export function AppNavigator() {
           {({ navigation }) => (
             <LoginEntryScreen
               onContinue={(selectedRole) => {
-                setRole(selectedRole);
-                navigation.replace(selectedRole === "visitor" ? "VisitorTabs" : "OrganizerTabs");
+                navigation.replace(selectedRole === "VISITOR" ? "VisitorTabs" : "OrganizerTabs");
               }}
             />
           )}
@@ -272,8 +317,10 @@ export function AppNavigator() {
             <VisitorTabShell
               onOpenGallery={(galleryId) => navigation.navigate("GalleryDetail", { galleryId })}
               onSwitchRole={() => {
-                setRole("organizer");
                 navigation.replace("OrganizerTabs");
+              }}
+              onLogout={() => {
+                navigation.replace("Login");
               }}
             />
           )}
@@ -287,8 +334,10 @@ export function AppNavigator() {
               onOpenFormBuilder={(exhibitionId) => navigation.navigate("FormBuilder", { exhibitionId })}
               onOpenSubmissions={(exhibitionId) => navigation.navigate("SubmissionReview", { exhibitionId })}
               onSwitchRole={() => {
-                setRole("visitor");
                 navigation.replace("VisitorTabs");
+              }}
+              onLogout={() => {
+                navigation.replace("Login");
               }}
             />
           )}

@@ -25,7 +25,7 @@ export function LoginEntryScreen({ onContinue }: LoginEntryScreenProps) {
             <Text style={styles.feature}>Registration and post-visit feedback loop</Text>
             <Text style={styles.feature}>Passport vault with progression milestones</Text>
           </View>
-          <Pressable style={styles.primaryButton} onPress={() => onContinue("visitor")}>
+          <Pressable style={styles.primaryButton} onPress={() => onContinue("VISITOR")}>
             <Text style={styles.primaryButtonText}>Continue as Visitor</Text>
           </Pressable>
         </View>
@@ -39,7 +39,7 @@ export function LoginEntryScreen({ onContinue }: LoginEntryScreenProps) {
             <Text style={styles.feature}>Lightweight dynamic registration fields</Text>
             <Text style={styles.feature}>Attendance and stamp handoff states</Text>
           </View>
-          <Pressable style={styles.secondaryButton} onPress={() => onContinue("organizer")}>
+          <Pressable style={styles.secondaryButton} onPress={() => onContinue("ORGANIZER")}>
             <Text style={styles.secondaryButtonText}>Continue as Organizer</Text>
           </Pressable>
         </View>

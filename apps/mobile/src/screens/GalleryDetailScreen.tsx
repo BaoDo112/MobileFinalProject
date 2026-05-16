@@ -1,4 +1,5 @@
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ScreenShell } from "../components/ScreenShell";
 import { palette, radii, spacing, typography } from "../theme/tokens";
@@ -57,6 +58,14 @@ export function GalleryDetailScreen({ gallery, reviews, onOpenRegistration, onOp
 
       <View style={styles.panel}>
         <Text style={styles.sectionTitle}>Address</Text>
+        <Pressable onPress={openMap} style={styles.mapFrame}>
+          <View style={styles.mapFrameOverlay} />
+          <View style={styles.mapFrameBadge}>
+            <Ionicons name="location-outline" size={16} color={palette.accent} />
+            <Text style={styles.mapFrameBadgeText}>Map preview</Text>
+          </View>
+          <Text style={styles.mapFrameText}>Tap to open location in Google Maps</Text>
+        </Pressable>
         <Text style={styles.text}>{gallery.address}</Text>
         <Pressable onPress={openMap} style={styles.linkButton}>
           <Text style={styles.linkButtonText}>Open in Google Maps</Text>
@@ -209,6 +218,48 @@ const styles = StyleSheet.create({
     color: palette.white,
     fontWeight: "700",
     fontFamily: typography.body
+  },
+  mapFrame: {
+    height: 160,
+    borderRadius: radii.md,
+    backgroundColor: palette.backgroundAlt,
+    borderWidth: 1,
+    borderColor: palette.border,
+    overflow: "hidden",
+    justifyContent: "space-between",
+    padding: spacing.sm
+  },
+  mapFrameOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(37, 23, 19, 0.07)"
+  },
+  mapFrameBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    backgroundColor: "rgba(255, 248, 241, 0.9)",
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6
+  },
+  mapFrameBadgeText: {
+    color: palette.accent,
+    fontFamily: typography.body,
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.4
+  },
+  mapFrameText: {
+    color: palette.text,
+    fontFamily: typography.body,
+    fontSize: 13,
+    fontWeight: "700",
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255, 248, 241, 0.86)",
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6
   },
   chipRow: {
     flexDirection: "row",

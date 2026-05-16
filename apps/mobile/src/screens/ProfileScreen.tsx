@@ -8,10 +8,11 @@ type ProfileScreenProps = Readonly<{
   role: UserRole;
   profile: UserProfile;
   onSwitchRole: () => void;
+  onLogout: () => void;
 }>;
 
-export function ProfileScreen({ role, profile, onSwitchRole }: ProfileScreenProps) {
-  const nextRoleLabel = role === "visitor" ? "Organizer" : "Visitor";
+export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: ProfileScreenProps) {
+  const nextRoleLabel = role === "VISITOR" ? "Organizer" : "Visitor";
 
   return (
     <ScreenShell eyebrow="Shared profile" title={profile.name} subtitle={profile.tagline}>
@@ -46,6 +47,9 @@ export function ProfileScreen({ role, profile, onSwitchRole }: ProfileScreenProp
 
       <Pressable style={styles.switchButton} onPress={onSwitchRole}>
         <Text style={styles.switchButtonText}>Switch to {nextRoleLabel} view</Text>
+      </Pressable>
+      <Pressable style={styles.logoutButton} onPress={onLogout}>
+        <Text style={styles.logoutButtonText}>Log out</Text>
       </Pressable>
       <View style={styles.helperCard}>
         <Text style={styles.helperText}>Role switching stays in-app so reviewers can traverse both user journeys quickly during demos.</Text>
@@ -137,6 +141,21 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 14,
     fontWeight: "700"
+  },
+  logoutButton: {
+    marginTop: spacing.sm,
+    backgroundColor: palette.card,
+    borderColor: palette.accent,
+    borderWidth: 1,
+    borderRadius: radii.pill,
+    paddingVertical: spacing.sm,
+    alignItems: "center"
+  },
+  logoutButtonText: {
+    color: palette.accent,
+    fontFamily: typography.body,
+    fontWeight: "700",
+    fontSize: 15
   },
   helperCard: {
     backgroundColor: palette.muted,
