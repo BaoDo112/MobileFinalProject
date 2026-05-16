@@ -41,15 +41,10 @@ export function GalleryHomeScreen({ galleries, onOpenGallery }: GalleryHomeScree
 
   return (
     <ScreenShell
-      eyebrow="Visitor flow"
-      title="Browse exhibitions with enough context to commit in one pass."
-      subtitle="Timeline tabs, district/type filters, and curated cards keep the decision path simple without flattening the gallery mood."
+      title="Browse exhibition"
+      subtitle="This week: build a route around one live show, one preview, and one archive replay. Timeline tabs, district/type filters, and curated cards keep the decision path simple without flattening the gallery mood."
+      headerVariant="dark"
     >
-      <View style={styles.heroCard}>
-        <Text style={styles.kicker}>This week</Text>
-        <Text style={styles.heroTitle}>Build a route around one live show, one preview, and one archive replay.</Text>
-        <Text style={styles.heroCopy}>Every card below keeps the entry mode, capacity, and curator note visible so visitors do not need to guess before registering.</Text>
-      </View>
 
       <View style={styles.filterShell}>
         <Pressable style={styles.filterToggle} onPress={() => setFiltersOpen((value) => !value)}>
@@ -123,36 +118,40 @@ export function GalleryHomeScreen({ galleries, onOpenGallery }: GalleryHomeScree
           </View>
         ) : (
           filteredGalleries.map((gallery) => (
-            <Pressable key={gallery.id} onPress={() => onOpenGallery(gallery.id)} style={styles.card}>
-              <View style={[styles.accentBar, { backgroundColor: gallery.accent }]} />
-              <View style={styles.cardImageSlot}>
-                {gallery.images?.[0] ? (
-                  <>
-                    <View style={styles.cardImageOverlay} />
-                    <Text style={styles.cardImageLabel}>{gallery.images[0]}</Text>
-                  </>
-                ) : (
-                  <View style={styles.cardImageEmpty}>
-                    <Ionicons name="image-outline" size={22} color={palette.textMuted} />
-                    <Text style={styles.cardImageEmptyText}>No image</Text>
+            <Pressable key={gallery.id} onPress={() => onOpenGallery(gallery.id)} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+              {({ pressed }) => (
+                <>
+                  <View style={[styles.accentBar, { backgroundColor: gallery.accent }]} />
+                  <View style={styles.cardImageSlot}>
+                    {gallery.images?.[0] ? (
+                      <>
+                        <View style={styles.cardImageOverlay} />
+                        <Text style={styles.cardImageLabel}>{gallery.images[0]}</Text>
+                      </>
+                    ) : (
+                      <View style={styles.cardImageEmpty}>
+                        <Ionicons name="image-outline" size={22} color={palette.textMuted} />
+                        <Text style={styles.cardImageEmptyText}>No image</Text>
+                      </View>
+                    )}
                   </View>
-                )}
-              </View>
-              <View style={styles.badgeRow}>
-                <Text style={styles.typeBadge}>{gallery.type}</Text>
-                <Text style={styles.statusText}>{registrationLabel[gallery.registrationStatus]}</Text>
-              </View>
-              <Text style={styles.cardTitle}>{gallery.title}</Text>
-              <Text style={styles.cardMeta}>{gallery.dateLabel} · {gallery.timeLabel}</Text>
-              <Text style={styles.cardMeta}>{gallery.district} · {gallery.organizer}</Text>
-              <Text style={styles.cardCopy}>{gallery.bio}</Text>
-              <View style={styles.highlightRow}>
-                {gallery.highlights.slice(0, 2).map((highlight) => (
-                  <View key={highlight} style={styles.highlightChip}>
-                    <Text style={styles.highlightText}>{highlight}</Text>
+                  <View style={[styles.badgeRow, pressed && styles.badgeRowPressed]}>
+                    <Text style={[styles.typeBadge, pressed && styles.typeBadgePressed]}>{gallery.type}</Text>
+                    <Text style={[styles.statusText, pressed && styles.statusTextPressed]}>{registrationLabel[gallery.registrationStatus]}</Text>
                   </View>
-                ))}
-              </View>
+                  <Text style={styles.cardTitle}>{gallery.title}</Text>
+                  <Text style={styles.cardMeta}>{gallery.dateLabel} · {gallery.timeLabel}</Text>
+                  <Text style={styles.cardMeta}>{gallery.district} · {gallery.organizer}</Text>
+                  <Text style={styles.cardCopy}>{gallery.bio}</Text>
+                  <View style={styles.highlightRow}>
+                    {gallery.highlights.slice(0, 2).map((highlight) => (
+                      <View key={highlight} style={styles.highlightChip}>
+                        <Text style={styles.highlightText}>{highlight}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
             </Pressable>
           ))
         )}
@@ -171,33 +170,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     borderWidth: 1,
     borderColor: palette.muted,
-  },
-  heroCard: {
-    padding: spacing.lg,
-    borderRadius: radii.xl,
-    backgroundColor: palette.cardStrong,
-    gap: spacing.xs
-  },
-  kicker: {
-    color: palette.accent,
-    fontFamily: typography.body,
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1,
-    textTransform: "uppercase"
-  },
-  heroTitle: {
-    color: palette.text,
-    fontFamily: typography.display,
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: "700"
-  },
-  heroCopy: {
-    color: palette.textMuted,
-    fontFamily: typography.body,
-    fontSize: 14,
-    lineHeight: 21
   },
   filterShell: {
     backgroundColor: palette.card,
@@ -319,6 +291,11 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     overflow: "hidden"
   },
+  cardPressed: {
+    borderColor: palette.accent,
+    backgroundColor: palette.backgroundAlt,
+    transform: [{ scale: 0.99 }]
+  },
   cardImageSlot: {
     height: 160,
     borderRadius: radii.md,
@@ -364,6 +341,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     alignItems: "center"
   },
+  badgeRowPressed: {
+    gap: spacing.xs
+  },
   typeBadge: {
     backgroundColor: palette.backgroundAlt,
     color: palette.accent,
@@ -374,12 +354,27 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     fontFamily: typography.body
   },
+  typeBadgePressed: {
+    backgroundColor: palette.text,
+    color: palette.background
+  },
   statusText: {
-    color: palette.textMuted,
+    color: palette.text,
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
     fontFamily: typography.body,
-    textTransform: "uppercase"
+    textTransform: "uppercase",
+    backgroundColor: palette.cardStrong,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+    borderRadius: radii.pill,
+    overflow: "hidden",
+    letterSpacing: 0.6
+  },
+  statusTextPressed: {
+    backgroundColor: palette.accent,
+    color: palette.white,
+    letterSpacing: 0.9
   },
   cardTitle: {
     color: palette.text,

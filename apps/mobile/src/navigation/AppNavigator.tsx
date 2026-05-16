@@ -162,23 +162,32 @@ function VisitorTabShell({
         tabBarStyle: {
           ...visitorTabOptions.tabBarStyle,
           bottom: insets.bottom + 8,
-          height: 46 + insets.bottom,
-          paddingTop: 0,
-          paddingBottom: 0
+          height: 56 + insets.bottom,
+          paddingTop: 2,
+          paddingBottom: 2,
+          justifyContent: "center"
         },
         tabBarItemStyle: {
           ...visitorTabOptions.tabBarItemStyle,
-          marginVertical: 0,
-          marginHorizontal: 4,
-          paddingVertical: 0
+          flex: 1,
+          marginVertical: 1,
+          marginHorizontal: 2,
+          paddingVertical: 0,
+          paddingHorizontal: 8,
+          height: 54,
+          justifyContent: "center",
+          alignItems: "center"
         },
         tabBarIconStyle: {
-          marginBottom: -4
+          marginBottom: -1
         },
         tabBarLabelStyle: {
           ...visitorTabOptions.tabBarLabelStyle,
-          fontSize: 9,
-          lineHeight: 10
+          fontSize: 10,
+          lineHeight: 10,
+          marginTop: 0,
+          marginBottom: 0,
+          textAlignVertical: "center"
         }
       }}
     >
@@ -186,7 +195,7 @@ function VisitorTabShell({
         name="Gallery"
         options={{
           title: "Gallery",
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "grid" : "grid-outline"} size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "grid" : "grid-outline"} size={22} color={color} />
         }}
       >
         {() => <GalleryHomeScreen galleries={galleries} onOpenGallery={onOpenGallery} />}
@@ -195,7 +204,7 @@ function VisitorTabShell({
         name="Discover"
         options={{
           title: "Discover",
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "compass" : "compass-outline"} size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "compass" : "compass-outline"} size={22} color={color} />
         }}
       >
         {() => <DiscoverMapScreen galleries={galleries} onOpenGallery={onOpenGallery} />}
@@ -204,16 +213,16 @@ function VisitorTabShell({
         name="Vault"
         options={{
           title: "Vault",
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "wallet" : "wallet-outline"} size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "wallet" : "wallet-outline"} size={22} color={color} />
         }}
       >
-        {() => <StampVaultScreen stamps={passportStamps} profile={visitorProfile} onOpenGallery={onOpenGallery} />}
+        {() => <StampVaultScreen stamps={passportStamps} galleries={galleries} profile={visitorProfile} onOpenGallery={onOpenGallery} />}
       </VisitorTabs.Screen>
       <VisitorTabs.Screen 
         name="Profile" 
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />
         }}
       >
         {() => (

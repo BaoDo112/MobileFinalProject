@@ -5,6 +5,7 @@ export type SessionStatus = "SCHEDULED" | "CANCELLED" | "COMPLETED";
 export type RegistrationStatus = "PENDING" | "CONFIRMED" | "WAITLISTED" | "REJECTED" | "CHECKED_IN" | "CANCELLED";
 export type ReviewStatus = "PUBLISHED" | "HIDDEN" | "FLAGGED";
 export type StampSource = "ATTENDANCE" | "MILESTONE";
+export type StampVaultSection = "CONFIRMED" | "UPCOMING" | "EXPIRED";
 export type FieldType = "TEXT" | "EMAIL" | "PHONE" | "TEXTAREA" | "SELECT";
 
 export interface User {
@@ -40,6 +41,22 @@ export interface OrganizerProfile {
   name: string;
   tagline?: string;
   city?: string;
+}
+
+export interface UserProfile {
+  id: string;
+  userId: string;
+  name: string;
+  fullName?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  email?: string;
+  phoneNumber?: string;
+  tagline?: string;
+  city?: string;
+  membershipLabel?: string;
+  stats: Array<{ label: string; value: string }>;
+  highlights: string[];
 }
 
 export interface Venue {
@@ -128,6 +145,7 @@ export interface Stamp {
   visitorId: string;
   exhibitionId: string;
   source: StampSource;
+  vaultSection: StampVaultSection;
   title: string;
   milestone?: string;
   note?: string;

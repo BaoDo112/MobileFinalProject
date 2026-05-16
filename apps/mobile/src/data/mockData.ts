@@ -76,43 +76,58 @@ export const passportStamps: Stamp[] = [
   {
     id: "s-01",
     title: "Lightwave",
-    unlocked: true,
-    milestone: "Visited",
-    galleryId: "g-01",
+    exhibitionId: "g-01",
+    source: "ATTENDANCE",
+    vaultSection: "CONFIRMED",
+    milestone: "Visited and confirmed",
     accent: "#d66b55",
-    note: "Unlocked after your sound-walk reservation was confirmed."
+    note: "Unlocked after your sound-walk reservation was confirmed.",
+    unlockedAt: "2026-04-03T12:00:00.000Z"
   },
   {
     id: "s-02",
     title: "Roots in Motion",
-    unlocked: false,
-    milestone: "Register to unlock",
-    galleryId: "g-02",
+    exhibitionId: "g-02",
+    source: "MILESTONE",
+    vaultSection: "UPCOMING",
+    milestone: "Registered for an upcoming session",
     accent: "#ba6f3d",
-    note: "Join the waitlist to reserve the next quiet session slot."
+    note: "Join the waitlist to reserve the next quiet session slot.",
+    unlockedAt: "2026-05-12T08:30:00.000Z"
   },
   {
     id: "s-03",
     title: "Neon Streets",
-    unlocked: true,
-    milestone: "Commented",
-    galleryId: "g-03",
+    exhibitionId: "g-03",
+    source: "ATTENDANCE",
+    vaultSection: "CONFIRMED",
+    milestone: "Visited and verified",
     accent: "#6f4d67",
-    note: "Unlocked because you left a post-visit review and comment."
+    note: "Unlocked because you left a post-visit review and comment.",
+    unlockedAt: "2026-03-20T17:00:00.000Z"
   },
   {
     id: "s-04",
     title: "Curator's Choice",
-    unlocked: false,
-    milestone: "Collect 3 active stamps",
-    galleryId: "g-01",
+    exhibitionId: "g-01",
+    source: "MILESTONE",
+    vaultSection: "EXPIRED",
+    milestone: "Registered but did not attend",
     accent: "#c38d3a",
-    note: "Hidden reward for visitors who finish three active experience loops."
+    note: "Registered, but the session passed without attendance.",
+    unlockedAt: "2026-04-20T09:00:00.000Z"
   }
 ];
 
 export const visitorProfile: UserProfile = {
+  id: "profile-visitor-01",
+  userId: "user-visitor-01",
   name: "Mai An",
+  fullName: "Mai An Nguyen",
+  gender: "Female",
+  dateOfBirth: "1998-05-14",
+  email: "mai.an@example.com",
+  phoneNumber: "+84 912 345 678",
   role: "visitor",
   tagline: "Weekend gallery hunter collecting immersive city moments.",
   city: "Ho Chi Minh City",
@@ -130,7 +145,14 @@ export const visitorProfile: UserProfile = {
 };
 
 export const organizerProfile: UserProfile = {
+  id: "profile-organizer-01",
+  userId: "user-organizer-01",
   name: "Arthera Studio",
+  fullName: "Arthera Studio",
+  gender: "N/A",
+  dateOfBirth: "2018-09-01",
+  email: "hello@artherastudio.com",
+  phoneNumber: "+84 28 5555 0123",
   role: "organizer",
   tagline: "Publishing intimate exhibition formats with small-session attendance control.",
   city: "District 1",

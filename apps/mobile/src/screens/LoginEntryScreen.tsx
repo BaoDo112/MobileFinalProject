@@ -44,11 +44,6 @@ export function LoginEntryScreen({ onContinue }: LoginEntryScreenProps) {
           </Pressable>
         </View>
       </View>
-
-      <View style={styles.noteCard}>
-        <Text style={styles.noteTitle}>Reference-driven build</Text>
-        <Text style={styles.noteText}>This UI follows the original 5 sample screens for mood and typography, while the archived wireframe board keeps every required flow visible.</Text>
-      </View>
     </ScreenShell>
   );
 }
@@ -124,25 +119,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     fontFamily: typography.body
-  },
-  noteCard: {
-    borderRadius: radii.md,
-    backgroundColor: palette.cardStrong,
-    padding: spacing.md,
-    gap: spacing.xs
-  },
-  noteTitle: {
-    color: palette.text,
-    fontFamily: typography.body,
-    fontSize: 14,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8
-  },
-  noteText: {
-    color: palette.textMuted,
-    fontFamily: typography.body,
-    fontSize: 14,
-    lineHeight: 20
   }
 });

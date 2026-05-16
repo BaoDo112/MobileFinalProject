@@ -8,10 +8,12 @@ type ScreenShellProps = Readonly<
     title: string;
     subtitle?: string;
     eyebrow?: string;
+    hideHeader?: boolean;
+    headerVariant?: "card" | "dark";
   }>
 >;
 
-export function ScreenShell({ title, subtitle, eyebrow, children }: ScreenShellProps) {
+export function ScreenShell({ title, subtitle, eyebrow, hideHeader, headerVariant = "card", children }: ScreenShellProps) {
   return (
     <View style={styles.container}>
       <View pointerEvents="none" style={styles.topOrb} />
@@ -22,11 +24,13 @@ export function ScreenShell({ title, subtitle, eyebrow, children }: ScreenShellP
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerCard}>
-          {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-          <Text style={styles.title}>{title}</Text>
-          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-        </View>
+        {hideHeader ? null : (
+          <View style={[styles.headerCard, headerVariant === "dark" && styles.headerCardDark]}>
+            {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+            <Text style={[styles.title, headerVariant === "dark" && styles.titleDark]}>{title}</Text>
+            {subtitle ? <Text style={[styles.subtitle, headerVariant === "dark" && styles.subtitleDark]}>{subtitle}</Text> : null}
+          </View>
+        )}
         {children}
       </ScrollView>
     </View>
@@ -57,6 +61,10 @@ const styles = StyleSheet.create({
     borderColor: palette.border,
     overflow: "hidden"
   },
+  headerCardDark: {
+    backgroundColor: palette.text,
+    borderWidth: 0
+  },
   eyebrow: {
     color: palette.accent,
     fontFamily: typography.body,
@@ -72,11 +80,17 @@ const styles = StyleSheet.create({
     fontFamily: typography.display,
     fontWeight: "700"
   },
+  titleDark: {
+    color: palette.background
+  },
   subtitle: {
     fontSize: 15,
     lineHeight: 22,
     color: palette.textMuted,
     fontFamily: typography.body
+  },
+  subtitleDark: {
+    color: palette.backgroundAlt
   },
   topOrb: {
     position: "absolute",

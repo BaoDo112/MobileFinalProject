@@ -15,11 +15,46 @@ export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: Profile
   const nextRoleLabel = role === "VISITOR" ? "Organizer" : "Visitor";
 
   return (
-    <ScreenShell eyebrow="Shared profile" title={profile.name} subtitle={profile.tagline}>
-      <View style={styles.heroCard}>
-        <Text style={styles.kicker}>{role}</Text>
-        <Text style={styles.heroTitle}>{profile.membershipLabel}</Text>
-        <Text style={styles.text}>{profile.city}</Text>
+    <ScreenShell hideHeader title={profile.name} subtitle={profile.tagline}>
+      <View style={styles.profileCard}>
+        <Text style={styles.cardLabel}>Name</Text>
+        <Text style={styles.profileName}>{profile.name}</Text>
+
+        <Text style={styles.cardLabel}>Bio</Text>
+        <Text style={styles.bioText}>{profile.tagline ?? "No bio available."}</Text>
+
+        <Text style={styles.cardLabel}>Interests</Text>
+        <View style={styles.interestRow}>
+          {profile.highlights.map((highlight) => (
+            <View key={highlight} style={styles.interestChip}>
+              <Text style={styles.interestText}>{highlight}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.infoCard}>
+        <Text style={styles.cardLabel}>Personal information</Text>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Full name</Text>
+          <Text style={styles.infoValue}>{profile.fullName ?? profile.name}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Gender</Text>
+          <Text style={styles.infoValue}>{profile.gender ?? "Not specified"}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Date of birth</Text>
+          <Text style={styles.infoValue}>{profile.dateOfBirth ?? "Not specified"}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Email</Text>
+          <Text style={styles.infoValue}>{profile.email ?? "Not specified"}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Phone number</Text>
+          <Text style={styles.infoValue}>{profile.phoneNumber ?? "Not specified"}</Text>
+        </View>
       </View>
 
       <View style={styles.statRow}>
@@ -29,20 +64,6 @@ export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: Profile
             <Text style={styles.statLabel}>{stat.label}</Text>
           </View>
         ))}
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.title}>Current focus</Text>
-        {profile.highlights.map((highlight) => (
-          <Text key={highlight} style={styles.text}>{highlight}</Text>
-        ))}
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.title}>Stack context</Text>
-        <Text style={styles.text}>Mobile FE: Expo React Native + React Navigation</Text>
-        <Text style={styles.text}>Backend: NestJS + Prisma + Neon</Text>
-        <Text style={styles.text}>This milestone stays mock-driven so UI can stabilize before API binding.</Text>
       </View>
 
       <Pressable style={styles.switchButton} onPress={onSwitchRole}>
@@ -59,13 +80,13 @@ export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: Profile
 }
 
 const styles = StyleSheet.create({
-  heroCard: {
+  profileCard: {
     backgroundColor: palette.cardStrong,
     borderRadius: radii.lg,
     padding: spacing.lg,
-    gap: spacing.xs
+    gap: spacing.sm
   },
-  kicker: {
+  cardLabel: {
     color: palette.accent,
     fontFamily: typography.body,
     fontSize: 12,
@@ -73,12 +94,63 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1
   },
-  heroTitle: {
+  profileName: {
     color: palette.text,
     fontFamily: typography.display,
     fontSize: 28,
     lineHeight: 34,
     fontWeight: "700"
+  },
+  bioText: {
+    color: palette.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: typography.body
+  },
+  interestRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs
+  },
+  interestChip: {
+    backgroundColor: palette.card,
+    borderColor: palette.border,
+    borderWidth: 1,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6
+  },
+  interestText: {
+    color: palette.text,
+    fontFamily: typography.body,
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  infoCard: {
+    backgroundColor: palette.card,
+    borderRadius: radii.lg,
+    borderColor: palette.border,
+    borderWidth: 1,
+    padding: spacing.lg,
+    gap: spacing.sm
+  },
+  infoRow: {
+    gap: 2
+  },
+  infoLabel: {
+    color: palette.textMuted,
+    fontFamily: typography.body,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8
+  },
+  infoValue: {
+    color: palette.text,
+    fontFamily: typography.body,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600"
   },
   statRow: {
     flexDirection: "row",
@@ -106,23 +178,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase"
-  },
-  card: {
-    backgroundColor: palette.card,
-    borderColor: palette.border,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    gap: spacing.xs
-  },
-  title: {
-    color: palette.text,
-    fontWeight: "700",
-    fontSize: 15,
-    marginTop: spacing.xs,
-    fontFamily: typography.body,
-    textTransform: "uppercase",
-    letterSpacing: 0.8
   },
   text: {
     color: palette.textMuted,
