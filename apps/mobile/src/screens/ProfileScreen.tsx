@@ -1,4 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Image } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 
 import { ScreenShell } from "../components/ScreenShell";
 import { palette, radii, spacing, typography } from "../theme/tokens";
@@ -13,6 +16,28 @@ type ProfileScreenProps = Readonly<{
 
 export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: ProfileScreenProps) {
   const nextRoleLabel = role === "VISITOR" ? "Organizer" : "Visitor";
+  const [showUploadBox, setShowUploadBox] = useState(false);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+
+  const openImagePicker = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.9
+    });
+
+    if (!result.canceled && result.assets[0]?.uri) {
+      setAvatarUri(result.assets[0].uri);
+      setShowUploadBox(false);
+    }
+  };
 
   return (
     <ScreenShell hideHeader title={profile.name} subtitle={profile.tagline}>
@@ -20,8 +45,38 @@ export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: Profile
         <Text style={styles.cardLabel}>Name</Text>
         <Text style={styles.profileName}>{profile.name}</Text>
 
-        <Text style={styles.cardLabel}>Bio</Text>
-        <Text style={styles.bioText}>{profile.tagline ?? "No bio available."}</Text>
+        <View style={styles.bioRow}>
+          <Pressable style={styles.avatarFrame} onPress={() => setShowUploadBox((current) => !current)} accessibilityRole="button">
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+            ) : (
+              <>
+                <Text style={styles.avatarPlus}>+</Text>
+                <Text style={styles.avatarText}>Upload</Text>
+              </>
+            )}
+          </Pressable>
+
+          <View style={styles.bioStack}>
+            <Text style={styles.cardLabel}>Bio</Text>
+            <Text style={styles.bioText}>{profile.tagline ?? "No bio available."}</Text>
+          </View>
+        </View>
+
+        {showUploadBox ? (
+          <View style={styles.uploadBox}>
+            <Text style={styles.uploadTitle}>Upload profile photo</Text>
+            <Text style={styles.uploadText}>Choose an image from your photo library to use as your avatar.</Text>
+            <View style={styles.uploadActions}>
+              <Pressable style={styles.uploadPrimaryButton} onPress={openImagePicker}>
+                <Text style={styles.uploadPrimaryButtonText}>Choose photo</Text>
+              </Pressable>
+              <Pressable style={styles.uploadSecondaryButton} onPress={() => setShowUploadBox(false)}>
+                <Text style={styles.uploadSecondaryButtonText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
 
         <Text style={styles.cardLabel}>Interests</Text>
         <View style={styles.interestRow}>
@@ -106,6 +161,99 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontFamily: typography.body
+  },
+  bioRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.md
+  },
+  avatarFrame: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    borderWidth: 1,
+    borderColor: palette.accent,
+    backgroundColor: palette.card,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+    flexShrink: 0
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 43
+  },
+  avatarPlus: {
+    color: palette.accent,
+    fontFamily: typography.display,
+    fontSize: 28,
+    lineHeight: 28,
+    fontWeight: "700"
+  },
+  avatarText: {
+    color: palette.textMuted,
+    fontFamily: typography.body,
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8
+  },
+  bioStack: {
+    flex: 1,
+    gap: spacing.xs
+  },
+  uploadBox: {
+    backgroundColor: palette.card,
+    borderWidth: 1,
+    borderColor: palette.border,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    gap: spacing.sm
+  },
+  uploadTitle: {
+    color: palette.text,
+    fontFamily: typography.body,
+    fontSize: 14,
+    fontWeight: "700"
+  },
+  uploadText: {
+    color: palette.textMuted,
+    fontFamily: typography.body,
+    fontSize: 13,
+    lineHeight: 18
+  },
+  uploadActions: {
+    flexDirection: "row",
+    gap: spacing.sm
+  },
+  uploadPrimaryButton: {
+    backgroundColor: palette.text,
+    borderRadius: radii.pill,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignItems: "center",
+    flex: 1
+  },
+  uploadPrimaryButtonText: {
+    color: palette.background,
+    fontFamily: typography.body,
+    fontSize: 13,
+    fontWeight: "700"
+  },
+  uploadSecondaryButton: {
+    backgroundColor: palette.cardStrong,
+    borderRadius: radii.pill,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignItems: "center",
+    flex: 1
+  },
+  uploadSecondaryButtonText: {
+    color: palette.text,
+    fontFamily: typography.body,
+    fontSize: 13,
+    fontWeight: "700"
   },
   interestRow: {
     flexDirection: "row",

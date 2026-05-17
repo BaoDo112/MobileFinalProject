@@ -43,6 +43,28 @@ export interface OrganizerProfile {
   city?: string;
 }
 
+export interface Gallery {
+  id: string;
+  title: string;
+  type: string;
+  district: string;
+  dateLabel: string;
+  timeLabel: string;
+  organizer: string;
+  bio: string;
+  address: string;
+  artists: string[];
+  images: string[];
+  status: string;
+  entryMode: string;
+  capacityNote: string;
+  curatorNote: string;
+  highlights: string[];
+  registrationStatus: string;
+  accent: string;
+  logoImage?: string;
+}
+
 export interface UserProfile {
   id: string;
   userId: string;

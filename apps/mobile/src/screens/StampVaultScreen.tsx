@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image } from "react-native";
 
 import { ScreenShell } from "../components/ScreenShell";
 import { palette, radii, spacing, typography } from "../theme/tokens";
@@ -8,6 +9,7 @@ type VaultGallery = Readonly<{
   id: string;
   title: string;
   images?: string[];
+  logoImage?: string;
 }>;
 
 type VaultStamp = Stamp & Readonly<{
@@ -98,6 +100,7 @@ function renderStampCard(
 ) {
   const galleryId = stamp.exhibitionId;
   const gallery = galleryId ? galleryMap.get(galleryId) : undefined;
+  const logoSource = gallery?.logoImage;
   const logoText = gallery?.title
     .split(" ")
     .filter(Boolean)
@@ -120,7 +123,11 @@ function renderStampCard(
     >
       <View style={[styles.stampAccent, { backgroundColor: stamp.accent }]} />
       <View style={[styles.logoBox, { backgroundColor: stamp.accent }]}>
-        <Text style={styles.logoText}>{logoText}</Text>
+        {logoSource ? (
+          <Image source={logoSource} style={styles.logoImage} resizeMode="cover" />
+        ) : (
+          <Text style={styles.logoText}>{logoText}</Text>
+        )}
       </View>
       <View style={styles.cardHeaderRow}>
         <Text style={styles.cardTitle}>{stamp.title}</Text>
@@ -233,6 +240,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: spacing.xs,
     marginBottom: spacing.xs
+  },
+  logoImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: radii.md
   },
   logoText: {
     color: palette.white,

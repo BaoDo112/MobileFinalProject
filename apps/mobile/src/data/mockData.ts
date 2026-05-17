@@ -9,6 +9,10 @@ import type {
   VisitSlot
 } from "../types/models";
 
+const lightwaveLogo = require("../../../../images/generated-1778689062548.png");
+const rootsLogo = require("../../../../images/generated-1778689028052.png");
+const neonLogo = require("../../../../images/generated-1778689022337.png");
+
 export const galleries: Gallery[] = [
   {
     id: "g-01",
@@ -28,7 +32,8 @@ export const galleries: Gallery[] = [
     curatorNote: "Arrive 10 minutes early for the intro loop and motion calibration.",
     highlights: ["Reactive projection hall", "Late-night audio slot", "Accessible pathway"],
     registrationStatus: "open",
-    accent: "#d66b55"
+    accent: "#d66b55",
+    logoImage: lightwaveLogo
   },
   {
     id: "g-02",
@@ -48,7 +53,8 @@ export const galleries: Gallery[] = [
     curatorNote: "Preview week keeps the route intimate, so registration closes quickly.",
     highlights: ["Ceramic installation line", "Hands-on material table", "Curator Q&A"],
     registrationStatus: "waitlist",
-    accent: "#ba6f3d"
+    accent: "#ba6f3d",
+    logoImage: rootsLogo
   },
   {
     id: "g-03",
@@ -68,7 +74,8 @@ export const galleries: Gallery[] = [
     curatorNote: "The team kept a full walk-through recording for returning visitors and review prompts.",
     highlights: ["Photo essay wall", "Projection archive", "Post-visit critique notes"],
     registrationStatus: "closed",
-    accent: "#6f4d67"
+    accent: "#6f4d67",
+    logoImage: neonLogo
   }
 ];
 
