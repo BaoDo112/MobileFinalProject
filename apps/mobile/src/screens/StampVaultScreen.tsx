@@ -1,5 +1,4 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Image } from "react-native";
 
 import { ScreenShell } from "../components/ScreenShell";
 import { palette, radii, spacing, typography } from "../theme/tokens";
@@ -100,7 +99,6 @@ function renderStampCard(
 ) {
   const galleryId = stamp.exhibitionId;
   const gallery = galleryId ? galleryMap.get(galleryId) : undefined;
-  const logoSource = gallery?.logoImage;
   const logoText = gallery?.title
     .split(" ")
     .filter(Boolean)
@@ -123,11 +121,7 @@ function renderStampCard(
     >
       <View style={[styles.stampAccent, { backgroundColor: stamp.accent }]} />
       <View style={[styles.logoBox, { backgroundColor: stamp.accent }]}>
-        {logoSource ? (
-          <Image source={logoSource} style={styles.logoImage} resizeMode="cover" />
-        ) : (
-          <Text style={styles.logoText}>{logoText}</Text>
-        )}
+        <Text style={styles.logoText}>{logoText}</Text>
       </View>
       <View style={styles.cardHeaderRow}>
         <Text style={styles.cardTitle}>{stamp.title}</Text>

@@ -5,7 +5,7 @@ import { palette, radii, spacing, typography } from "../theme/tokens";
 
 type ScreenShellProps = Readonly<
   PropsWithChildren<{
-    title: string;
+    title?: string;
     subtitle?: string;
     eyebrow?: string;
     hideHeader?: boolean;
@@ -24,10 +24,10 @@ export function ScreenShell({ title, subtitle, eyebrow, hideHeader, headerVarian
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
-        {hideHeader ? null : (
+        {hideHeader || (!title && !eyebrow && !subtitle) ? null : (
           <View style={[styles.headerCard, headerVariant === "dark" && styles.headerCardDark]}>
             {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-            <Text style={[styles.title, headerVariant === "dark" && styles.titleDark]}>{title}</Text>
+            {title ? <Text style={[styles.title, headerVariant === "dark" && styles.titleDark]}>{title}</Text> : null}
             {subtitle ? <Text style={[styles.subtitle, headerVariant === "dark" && styles.subtitleDark]}>{subtitle}</Text> : null}
           </View>
         )}

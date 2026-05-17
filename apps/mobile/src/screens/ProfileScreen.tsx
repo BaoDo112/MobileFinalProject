@@ -40,7 +40,7 @@ export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: Profile
   };
 
   return (
-    <ScreenShell hideHeader title={profile.name} subtitle={profile.tagline}>
+    <ScreenShell title={profile.name} subtitle={profile.tagline}>
       <View style={styles.profileCard}>
         <Text style={styles.cardLabel}>Name</Text>
         <Text style={styles.profileName}>{profile.name}</Text>
