@@ -9,10 +9,6 @@ import type {
   VisitSlot
 } from "../types/models";
 
-const lightwaveLogo = require("../../../../images/generated-1778689062548.png");
-const rootsLogo = require("../../../../images/generated-1778689028052.png");
-const neonLogo = require("../../../../images/generated-1778689022337.png");
-
 export const galleries: Gallery[] = [
   {
     id: "g-01",
@@ -33,7 +29,7 @@ export const galleries: Gallery[] = [
     highlights: ["Reactive projection hall", "Late-night audio slot", "Accessible pathway"],
     registrationStatus: "open",
     accent: "#d66b55",
-    logoImage: lightwaveLogo
+    logoImage: undefined
   },
   {
     id: "g-02",
@@ -54,7 +50,7 @@ export const galleries: Gallery[] = [
     highlights: ["Ceramic installation line", "Hands-on material table", "Curator Q&A"],
     registrationStatus: "waitlist",
     accent: "#ba6f3d",
-    logoImage: rootsLogo
+    logoImage: undefined
   },
   {
     id: "g-03",
@@ -75,7 +71,7 @@ export const galleries: Gallery[] = [
     highlights: ["Photo essay wall", "Projection archive", "Post-visit critique notes"],
     registrationStatus: "closed",
     accent: "#6f4d67",
-    logoImage: neonLogo
+    logoImage: undefined
   }
 ];
 

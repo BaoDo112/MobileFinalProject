@@ -31,11 +31,7 @@ export function OrganizerDashboardScreen({
   const visibleExhibitions = selectedStatus === "all" ? exhibitions : exhibitions.filter((item) => item.status === selectedStatus);
 
   return (
-    <ScreenShell
-      eyebrow="Organizer flow"
-      title="Run the exhibition pipeline from one mobile command center."
-      subtitle="Draft, publish, map fields, and review submissions without splitting the organizer journey into disconnected placeholders."
-    >
+    <ScreenShell>
       <View style={styles.heroCard}>
         <Text style={styles.kicker}>Today</Text>
         <Text style={styles.heroTitle}>Keep the command center light enough for a semester demo, but complete enough to prove the full workflow.</Text>
