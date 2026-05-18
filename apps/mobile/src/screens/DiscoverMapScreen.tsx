@@ -1,8 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useCallback, useState } from "react";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useNavigation } from "@react-navigation/native";
 
 import { palette, radii, spacing, typography } from "../theme/tokens";
 import type { Gallery } from "../types/models";
@@ -58,12 +56,13 @@ export function DiscoverMapScreen({
           const lng = initialRegion ? initialRegion.longitude + (index * 0.01) - 0.005 : 0;
           
           const isSelected = selectedGallery?.id === gallery.id;
-          const markerStyle =
-            gallery.status === "present"
-              ? styles.markerBodyLive
-              : gallery.status === "future"
-                ? styles.markerBodyUpcoming
-                : styles.markerBodyPast;
+          let markerStyle: typeof styles.markerBodyPast | typeof styles.markerBodyLive | typeof styles.markerBodyUpcoming = styles.markerBodyPast;
+
+          if (gallery.status === "present") {
+            markerStyle = styles.markerBodyLive;
+          } else if (gallery.status === "future") {
+            markerStyle = styles.markerBodyUpcoming;
+          }
           
           return (
             <Marker
@@ -90,7 +89,7 @@ export function DiscoverMapScreen({
                 <Ionicons name="image-outline" size={24} color={palette.textMuted} />
               </View>
               <View style={styles.cardMeta}>
-                <Text style={styles.cardTitle} numberOfLines={1}>{selectedGallery.name}</Text>
+                <Text style={styles.cardTitle} numberOfLines={1}>{selectedGallery.title}</Text>
                 <Text style={styles.cardSub} numberOfLines={1}>Open until 9:00 PM • {((Math.random() * 5) + 0.1).toFixed(1)}km</Text>
               </View>
             </View>

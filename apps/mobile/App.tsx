@@ -1,13 +1,26 @@
 import { StatusBar } from "expo-status-bar";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AppNavigator } from "./src/navigation/AppNavigator";
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      retry: 1,
+      refetchOnReconnect: true
+    }
+  }
+});
+
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <AppNavigator />
+      <QueryClientProvider client={queryClient}>
+        <StatusBar style="dark" />
+        <AppNavigator />
+      </QueryClientProvider>
     </SafeAreaProvider>
   );
 }

@@ -48,13 +48,13 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.xxl,
-    gap: spacing.md
+    gap: spacing.sm
   },
   headerCard: {
-    gap: spacing.xs,
-    padding: spacing.lg,
+    gap: 6,
+    padding: spacing.md,
     borderRadius: radii.xl,
     backgroundColor: palette.card,
     borderWidth: 1,
@@ -74,8 +74,8 @@ const styles = StyleSheet.create({
     textTransform: "uppercase"
   },
   title: {
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 30,
+    lineHeight: 36,
     color: palette.text,
     fontFamily: typography.display,
     fontWeight: "700"
@@ -84,8 +84,8 @@ const styles = StyleSheet.create({
     color: palette.background
   },
   subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
     color: palette.textMuted,
     fontFamily: typography.body
   },
@@ -94,13 +94,13 @@ const styles = StyleSheet.create({
   },
   topOrb: {
     position: "absolute",
-    top: -40,
+    top: -52,
     right: -20,
     width: 180,
     height: 180,
     borderRadius: 999,
     backgroundColor: palette.cardStrong,
-    opacity: 0.55
+    opacity: 0.42
   },
   bottomOrb: {
     position: "absolute",

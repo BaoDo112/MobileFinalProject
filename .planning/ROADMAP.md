@@ -14,6 +14,8 @@
 
 **Milestone Goal:** Turn the locked v1.5 Pencil contract into executable Prisma, Nest, and Expo work for all 13 screens without reopening screen planning.
 
+**2026-05-18 Audit Snapshot:** The latest pull expanded the FE shell surface across most screens, but route-critical data is still mocked from `apps/mobile/src/data/mockData.ts` and backend services remain placeholder or in-memory. Treat this as UI acceleration, not completed phase execution. See `.planning/v1.4-PULL-AUDIT.md`.
+
 **Locked Execution Stack:**
 - Mobile data: `@tanstack/react-query` + typed `fetch` client wrappers.
 - Mobile session/auth: `zustand` + `expo-secure-store` + `expo-auth-session`/`expo-web-browser`.
@@ -22,7 +24,7 @@
 - Scheduling/verification: `@nestjs/schedule`, Prisma seed, Jest + Supertest, `jest-expo`, and React Native Testing Library.
 - Explicitly deferred: Axios, RTK Query, BullMQ/Redis, push delivery, and full cloud upload infrastructure.
 
-- [ ] **Phase 1: Domain Schema, Auth, and Shared Contracts** - Replace the MVP data model and auth stubs with the V2 workflow graph, typed contracts, and shared mobile primitives.
+- [x] **Phase 1: Domain Schema, Auth, and Shared Contracts** - Replace the MVP data model and auth stubs with the V2 workflow graph, typed contracts, and shared mobile primitives.
 - [ ] **Phase 2: Visitor Discovery, Registration, and Profile** - Deliver the read and reservation flows for Discover, Exhibition Detail, Event Registration, and Visitor Profile against real backend contracts.
 - [ ] **Phase 3: Organizer Publication and Queue Operations** - Deliver the Dashboard, Exhibition Editor, Form Builder, Submission Pipeline, Submission Review, and Organizer Profile flows against the new workflow model.
 - [ ] **Phase 4: Review, Stamp, and End-to-End Hardening** - Deliver Review Hub, Stamp Vault, and the cross-flow hardening needed to verify all 13 screens end-to-end.
@@ -42,8 +44,8 @@
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Replace the MVP schema and shared contracts with the V2 workflow entity model.
-- [ ] 01-02: Implement auth/workspace bootstrap and shared mobile primitives for the locked access flow.
+- [x] 01-01: Replace the MVP schema and shared contracts with the V2 workflow entity model.
+- [x] 01-02: Implement auth/workspace bootstrap and shared mobile primitives for the locked access flow.
 
 ### Phase 2: Visitor Discovery, Registration, and Profile
 **Goal**: Deliver the visitor browse and reservation path using the new exhibition-first domain.
@@ -98,7 +100,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Domain Schema, Auth, and Shared Contracts | 0/2 | Planned | |
+| 1. Domain Schema, Auth, and Shared Contracts | 2/2 | Completed | 2026-05-18 |
 | 2. Visitor Discovery, Registration, and Profile | 0/2 | Planned | |
 | 3. Organizer Publication and Queue Operations | 0/3 | Planned | |
 | 4. Review, Stamp, and End-to-End Hardening | 0/2 | Planned | |

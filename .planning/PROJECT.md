@@ -25,6 +25,7 @@ v1.4 is now planned as the build milestone that translates that locked contract 
 - **Active milestone**: v1.4 End-to-End Contract Alignment and Delivery
 - **Execution mode used**: planning-first implementation with screen-by-screen DB -> BE -> FE ownership
 - **Execution stack authority**: `.planning/STACK.md` locks the cross-cutting libraries for auth, query, form validation, persistence, scheduling, and smoke testing.
+- **Latest audit snapshot**: `.planning/v1.4-PULL-AUDIT.md` records the 2026-05-18 post-pull state: frontend shells expanded, but route-critical data and service execution remain unimplemented.
 - **Immediate goal**: execute the schema/auth foundation, then parallelize visitor and organizer slices against the locked v1.5 boards
 
 ## Requirements
@@ -66,6 +67,7 @@ v1.4 is now planned as the build milestone that translates that locked contract 
 - CI/CD baseline already runs lint/test/build checks for both mobile and API.
 - Current Expo routes still depend on `apps/mobile/src/data/mockData.ts` for route-critical state.
 - Current Nest modules are placeholder controllers/services and do not yet satisfy the v1.5 workflow contract.
+- 2026-05-18 pull audit confirms that most screens now have FE shells, but this does not yet count as completed v1.4 delivery because DB, shared contracts, and service modules are still missing.
 
 ## Constraints
 
@@ -89,5 +91,12 @@ v1.4 is now planned as the build milestone that translates that locked contract 
 | Plan v1.4 by screen and by DB -> BE -> FE ownership | Avoids another planning rewrite once implementation starts | Complete |
 | Lock the support libraries before execution | Prevents phase-by-phase drift between query, auth, validation, persistence, and testing patterns | Complete |
 
+## 2026-05-18 Pull Audit
+
+- Buildability was restored after the latest pull through compatibility fixes in mobile types and shared API contracts.
+- Current FE work is ahead of backend execution: nearly all planned screens have UI shells, but route-critical state is still mocked from `apps/mobile/src/data/mockData.ts`.
+- Current API services remain placeholder, seeded, or in-memory; no v1.4 phase can be marked complete from the pulled code alone.
+- The correct next execution step remains Phase 1 Plan 01, not a roadmap rewrite.
+
 ---
-*Last updated: 2026-05-12 after locking the v1.4 execution stack*
+*Last updated: 2026-05-18 after post-pull audit and build repair*

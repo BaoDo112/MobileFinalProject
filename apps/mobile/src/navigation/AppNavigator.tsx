@@ -1,11 +1,16 @@
-import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { authApi } from "../api/auth";
+import { ErrorRecoveryPanel } from "../components/ErrorRecoveryPanel";
+import { ScreenShell } from "../components/ScreenShell";
+import { StatusChip } from "../components/StatusChip";
 import {
   exhibitionFormsById,
   exhibitionSubmissionsById,
@@ -16,7 +21,7 @@ import {
   passportStamps,
   registrationFormsByGallery,
   visitSlotsByGallery,
-  visitorProfile
+  visitorProfile,
 } from "../data/mockData";
 import { DiscoverMapScreen } from "../screens/DiscoverMapScreen";
 import { EventRegistrationScreen } from "../screens/EventRegistrationScreen";
@@ -31,8 +36,9 @@ import { ReviewHubScreen } from "../screens/ReviewHubScreen";
 import { StampVaultScreen } from "../screens/StampVaultScreen";
 import { SubmissionPipelineScreen } from "../screens/SubmissionPipelineScreen";
 import { SubmissionReviewScreen } from "../screens/SubmissionReviewScreen";
+import { useSessionStore } from "../state/session";
 import { palette, radii, spacing, typography } from "../theme/tokens";
-import type { UserRole } from "../types/models";
+import type { OrganizerProfile, User, UserProfile, VisitorProfile } from "../types/models";
 
 type RootStackParamList = {
   Login: undefined;
@@ -63,6 +69,11 @@ const RootStack = createNativeStackNavigator<RootStackParamList>();
 const VisitorTabs = createBottomTabNavigator<VisitorTabParamList>();
 const OrganizerTabs = createBottomTabNavigator<OrganizerTabParamList>();
 
+type TabIconProps = Readonly<{
+  color: string;
+  focused: boolean;
+}>;
+
 const navigationTheme = {
   ...DefaultTheme,
   colors: {
@@ -72,8 +83,8 @@ const navigationTheme = {
     text: palette.text,
     border: "transparent",
     primary: palette.accent,
-    notification: palette.gold
-  }
+    notification: palette.gold,
+  },
 };
 
 const sharedTabOptions = {
@@ -85,20 +96,20 @@ const sharedTabOptions = {
     borderTopWidth: 0,
     height: 72,
     paddingTop: spacing.xs,
-    paddingBottom: spacing.xs
+    paddingBottom: spacing.xs,
   },
   tabBarItemStyle: {
     borderRadius: radii.pill,
     marginHorizontal: spacing.xxs,
-    marginVertical: spacing.xxs
+    marginVertical: spacing.xxs,
   },
   tabBarActiveBackgroundColor: palette.backgroundAlt,
   tabBarLabelStyle: {
     fontFamily: typography.body,
     fontSize: 12,
     fontWeight: "700",
-    textTransform: "uppercase"
-  }
+    textTransform: "uppercase",
+  },
 } as const;
 
 const visitorTabOptions = {
@@ -117,7 +128,7 @@ const visitorTabOptions = {
     borderTopWidth: 0,
     elevation: 0,
     shadowOpacity: 0,
-    overflow: "hidden"
+    overflow: "hidden",
   },
   tabBarBackground: () => (
     <View style={{ flex: 1, borderRadius: 9999, overflow: "hidden", backgroundColor: "rgba(41, 37, 36, 0.72)" }}>
@@ -133,25 +144,94 @@ const visitorTabOptions = {
   },
   tabBarActiveBackgroundColor: palette.accent,
   tabBarIconStyle: {
-    marginBottom: -2
+    marginBottom: -2,
   },
   tabBarLabelStyle: {
     fontFamily: typography.body,
     fontSize: 10,
     fontWeight: "700",
     marginTop: 0,
-    lineHeight: 11
-  }
+    lineHeight: 11,
+  },
 } as const;
+
+function renderGalleryTabIcon({ color, focused }: TabIconProps) {
+  return <Ionicons name={focused ? "grid" : "grid-outline"} size={22} color={color} />;
+}
+
+function renderDiscoverTabIcon({ color, focused }: TabIconProps) {
+  return <Ionicons name={focused ? "compass" : "compass-outline"} size={22} color={color} />;
+}
+
+function renderVaultTabIcon({ color, focused }: TabIconProps) {
+  return <Ionicons name={focused ? "wallet" : "wallet-outline"} size={22} color={color} />;
+}
+
+function renderProfileTabIcon({ color, focused }: TabIconProps) {
+  return <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />;
+}
+
+function toVisitorProfileView(user: User | null, profile: VisitorProfile | null): UserProfile | null {
+  if (!user) {
+    return null;
+  }
+
+  return {
+    id: profile?.id ?? `${user.id}-visitor`,
+    userId: user.id,
+    name: profile?.name ?? user.email.split("@")[0],
+    fullName: profile?.fullName ?? profile?.name ?? user.email,
+    email: user.email,
+    phoneNumber: profile?.phoneNumber,
+    role: "visitor",
+    tagline: profile?.tagline ?? "Discover, reserve, review, and collect stamps.",
+    city: profile?.city,
+    membershipLabel: profile?.membershipLabel ?? "Member",
+    stats: [
+      { label: "Workspace", value: "Visitor" },
+      { label: "Session", value: "Ready" },
+    ],
+    highlights: [profile?.membershipLabel, profile?.city, profile?.accessibilityNotes].filter(
+      (value): value is string => Boolean(value?.trim())
+    ),
+  };
+}
+
+function toOrganizerProfileView(user: User | null, profile: OrganizerProfile | null): UserProfile | null {
+  if (!user) {
+    return null;
+  }
+
+  return {
+    id: profile?.id ?? `${user.id}-organizer`,
+    userId: user.id,
+    name: profile?.name ?? user.email.split("@")[0],
+    fullName: profile?.organizationName ?? profile?.name ?? user.email,
+    email: user.email,
+    phoneNumber: profile?.phoneNumber,
+    role: "organizer",
+    tagline: profile?.tagline ?? "Publish exhibitions and manage the live queue.",
+    city: profile?.city,
+    stats: [
+      { label: "Workspace", value: "Organizer" },
+      { label: "Session", value: "Ready" },
+    ],
+    highlights: [profile?.organizationName, profile?.city].filter(
+      (value): value is string => Boolean(value?.trim())
+    ),
+  };
+}
 
 function VisitorTabShell({
   onOpenGallery,
   onSwitchRole,
-  onLogout
+  onLogout,
+  profile,
 }: Readonly<{
   onOpenGallery: (galleryId: string) => void;
   onSwitchRole: () => void;
   onLogout: () => void;
+  profile: UserProfile | null;
 }>) {
   const insets = useSafeAreaInsets();
 
@@ -165,7 +245,7 @@ function VisitorTabShell({
           height: 56 + insets.bottom,
           paddingTop: 2,
           paddingBottom: 2,
-          justifyContent: "center"
+          justifyContent: "center",
         },
         tabBarItemStyle: {
           ...visitorTabOptions.tabBarItemStyle,
@@ -176,10 +256,10 @@ function VisitorTabShell({
           paddingHorizontal: 8,
           height: 54,
           justifyContent: "center",
-          alignItems: "center"
+          alignItems: "center",
         },
         tabBarIconStyle: {
-          marginBottom: -1
+          marginBottom: -1,
         },
         tabBarLabelStyle: {
           ...visitorTabOptions.tabBarLabelStyle,
@@ -187,15 +267,15 @@ function VisitorTabShell({
           lineHeight: 10,
           marginTop: 0,
           marginBottom: 0,
-          textAlignVertical: "center"
-        }
+          textAlignVertical: "center",
+        },
       }}
     >
       <VisitorTabs.Screen
         name="Gallery"
         options={{
           title: "Gallery",
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "grid" : "grid-outline"} size={22} color={color} />
+          tabBarIcon: renderGalleryTabIcon,
         }}
       >
         {() => <GalleryHomeScreen galleries={galleries} onOpenGallery={onOpenGallery} />}
@@ -204,7 +284,7 @@ function VisitorTabShell({
         name="Discover"
         options={{
           title: "Discover",
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "compass" : "compass-outline"} size={22} color={color} />
+          tabBarIcon: renderDiscoverTabIcon,
         }}
       >
         {() => <DiscoverMapScreen galleries={galleries} onOpenGallery={onOpenGallery} />}
@@ -213,26 +293,19 @@ function VisitorTabShell({
         name="Vault"
         options={{
           title: "Vault",
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "wallet" : "wallet-outline"} size={22} color={color} />
+          tabBarIcon: renderVaultTabIcon,
         }}
       >
-        {() => <StampVaultScreen stamps={passportStamps} galleries={galleries} profile={visitorProfile} onOpenGallery={onOpenGallery} />}
+        {() => <StampVaultScreen stamps={passportStamps} galleries={galleries} profile={profile ?? visitorProfile} onOpenGallery={onOpenGallery} />}
       </VisitorTabs.Screen>
-      <VisitorTabs.Screen 
-        name="Profile" 
+      <VisitorTabs.Screen
+        name="Profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />
+          tabBarIcon: renderProfileTabIcon,
         }}
       >
-        {() => (
-          <ProfileScreen
-            role="VISITOR"
-            profile={visitorProfile}
-            onSwitchRole={onSwitchRole}
-            onLogout={onLogout}
-          />
-        )}
+        {() => <ProfileScreen role="VISITOR" profile={profile} onSwitchRole={onSwitchRole} onLogout={onLogout} />}
       </VisitorTabs.Screen>
     </VisitorTabs.Navigator>
   );
@@ -244,7 +317,8 @@ function OrganizerTabShell({
   onOpenFormBuilder,
   onOpenSubmissions,
   onSwitchRole,
-  onLogout
+  onLogout,
+  profile,
 }: Readonly<{
   onCreateExhibition: () => void;
   onEditExhibition: (exhibitionId: string) => void;
@@ -252,6 +326,7 @@ function OrganizerTabShell({
   onOpenSubmissions: (exhibitionId: string) => void;
   onSwitchRole: () => void;
   onLogout: () => void;
+  profile: UserProfile | null;
 }>) {
   return (
     <OrganizerTabs.Navigator screenOptions={sharedTabOptions}>
@@ -276,150 +351,211 @@ function OrganizerTabShell({
         )}
       </OrganizerTabs.Screen>
       <OrganizerTabs.Screen name="Profile" options={{ title: "Profile" }}>
-        {() => (
-          <ProfileScreen
-            role="ORGANIZER"
-            profile={organizerProfile}
-            onSwitchRole={onSwitchRole}
-            onLogout={onLogout}
-          />
-        )}
+        {() => <ProfileScreen role="ORGANIZER" profile={profile} onSwitchRole={onSwitchRole} onLogout={onLogout} />}
       </OrganizerTabs.Screen>
     </OrganizerTabs.Navigator>
   );
 }
 
 export function AppNavigator() {
-  const galleryMap = useMemo(
-    () => new Map(galleries.map((gallery) => [gallery.id, gallery])),
-    []
+  const hydrate = useSessionStore((state) => state.hydrate);
+  const setSessionEnvelope = useSessionStore((state) => state.setSessionEnvelope);
+  const clearSession = useSessionStore((state) => state.clearSession);
+  const switchRole = useSessionStore((state) => state.switchRole);
+  const hasHydrated = useSessionStore((state) => state.hasHydrated);
+  const token = useSessionStore((state) => state.token);
+  const user = useSessionStore((state) => state.user);
+  const activeRole = useSessionStore((state) => state.activeRole);
+  const visitorBootstrap = useSessionStore((state) => state.visitorProfile);
+  const organizerBootstrap = useSessionStore((state) => state.organizerProfile);
+
+  useEffect(() => {
+    void hydrate();
+  }, [hydrate]);
+
+  const sessionQuery = useQuery({
+    queryKey: ["session-bootstrap", token],
+    queryFn: () => authApi.getSession(),
+    enabled: hasHydrated && Boolean(token),
+    retry: false,
+    staleTime: 300_000,
+  });
+
+  useEffect(() => {
+    if (sessionQuery.data) {
+      void setSessionEnvelope(sessionQuery.data);
+    }
+  }, [sessionQuery.data, setSessionEnvelope]);
+
+  const galleryMap = useMemo(() => new Map(galleries.map((gallery) => [gallery.id, gallery])), []);
+  const exhibitionMap = useMemo(() => new Map(organizerExhibitions.map((exhibition) => [exhibition.id, exhibition])), []);
+  const visitorProfileView = useMemo(
+    () => (token ? toVisitorProfileView(user, visitorBootstrap) : visitorProfile),
+    [token, user, visitorBootstrap]
+  );
+  const organizerProfileView = useMemo(
+    () => (token ? toOrganizerProfileView(user, organizerBootstrap) : organizerProfile),
+    [token, user, organizerBootstrap]
   );
 
-  const exhibitionMap = useMemo(
-    () => new Map(organizerExhibitions.map((exhibition) => [exhibition.id, exhibition])),
-    []
+  if (!hasHydrated) {
+    return (
+      <ScreenShell title="Restoring workspace" subtitle="Loading the saved session and role selection before routing into the app.">
+        <StatusChip label="Session bootstrap" tone="neutral" />
+      </ScreenShell>
+    );
+  }
+
+  if (token && sessionQuery.isError) {
+    return (
+      <ScreenShell title="Session recovery needed" subtitle="The saved token could not restore the current workspace bootstrap.">
+        <ErrorRecoveryPanel
+          description={sessionQuery.error instanceof Error ? sessionQuery.error.message : "Session bootstrap failed."}
+          onRetry={() => {
+            sessionQuery.refetch();
+          }}
+          secondaryLabel="Sign out"
+          onSecondaryAction={() => {
+            void clearSession();
+          }}
+        />
+      </ScreenShell>
+    );
+  }
+
+  const resolvedRole = activeRole ?? user?.preferredRole ?? user?.role ?? "VISITOR";
+  const isAuthenticated = Boolean(token);
+  let initialRouteName: keyof RootStackParamList = "Login";
+  if (isAuthenticated) {
+    initialRouteName = resolvedRole === "ORGANIZER" ? "OrganizerTabs" : "VisitorTabs";
+  }
+  const navigatorKey = token ? `member-${resolvedRole}` : "guest";
+
+  let rootScreen = (
+    <RootStack.Screen name="Login" options={{ headerShown: false }}>
+      {() => <LoginEntryScreen />}
+    </RootStack.Screen>
   );
+
+  if (isAuthenticated && resolvedRole === "ORGANIZER") {
+    rootScreen = (
+      <RootStack.Screen name="OrganizerTabs" options={{ headerShown: false }}>
+        {({ navigation }) => (
+          <OrganizerTabShell
+            onCreateExhibition={() => navigation.navigate("ExhibitionEditor", {})}
+            onEditExhibition={(exhibitionId) => navigation.navigate("ExhibitionEditor", { exhibitionId })}
+            onOpenFormBuilder={(exhibitionId) => navigation.navigate("FormBuilder", { exhibitionId })}
+            onOpenSubmissions={(exhibitionId) => navigation.navigate("SubmissionReview", { exhibitionId })}
+            onSwitchRole={() => {
+              void switchRole("VISITOR");
+            }}
+            onLogout={() => {
+              void clearSession();
+            }}
+            profile={organizerProfileView}
+          />
+        )}
+      </RootStack.Screen>
+    );
+  } else if (isAuthenticated) {
+    rootScreen = (
+      <RootStack.Screen name="VisitorTabs" options={{ headerShown: false }}>
+        {({ navigation }) => (
+          <VisitorTabShell
+            onOpenGallery={(galleryId) => navigation.navigate("GalleryDetail", { galleryId })}
+            onSwitchRole={() => {
+              void switchRole("ORGANIZER");
+            }}
+            onLogout={() => {
+              void clearSession();
+            }}
+            profile={visitorProfileView}
+          />
+        )}
+      </RootStack.Screen>
+    );
+  }
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer key={navigatorKey} theme={navigationTheme}>
       <RootStack.Navigator
+        initialRouteName={initialRouteName}
         screenOptions={{
           headerTintColor: palette.text,
           headerStyle: { backgroundColor: palette.background },
           headerTitleStyle: { fontFamily: typography.body, fontWeight: "700" },
           headerShadowVisible: false,
-          contentStyle: { backgroundColor: palette.background }
+          contentStyle: { backgroundColor: palette.background },
         }}
       >
-        <RootStack.Screen name="Login" options={{ headerShown: false }}>
-          {({ navigation }) => (
-            <LoginEntryScreen
-              onContinue={(selectedRole) => {
-                navigation.replace(selectedRole === "VISITOR" ? "VisitorTabs" : "OrganizerTabs");
+        {rootScreen}
+
+        {token ? (
+          <>
+            <RootStack.Screen name="GalleryDetail" options={{ title: "Exhibition Details", headerBackTitle: "Back" }}>
+              {({ route, navigation }) => (
+                <GalleryDetailScreen
+                  gallery={galleryMap.get(route.params.galleryId)}
+                  reviews={galleryReviews[route.params.galleryId] ?? []}
+                  onOpenRegistration={() => navigation.navigate("EventRegistration", { galleryId: route.params.galleryId })}
+                  onOpenReview={() => navigation.navigate("ReviewHub", { galleryId: route.params.galleryId })}
+                />
+              )}
+            </RootStack.Screen>
+
+            <RootStack.Screen name="EventRegistration" options={{ title: "Reserve Visit", headerBackTitle: "Back" }}>
+              {({ route }) => (
+                <EventRegistrationScreen
+                  gallery={galleryMap.get(route.params.galleryId)}
+                  fields={registrationFormsByGallery[route.params.galleryId] ?? []}
+                  slots={visitSlotsByGallery[route.params.galleryId] ?? []}
+                />
+              )}
+            </RootStack.Screen>
+
+            <RootStack.Screen name="ReviewHub" options={{ title: "Review & Comment", headerBackTitle: "Back" }}>
+              {({ route }) => (
+                <ReviewHubScreen gallery={galleryMap.get(route.params.galleryId)} reviews={galleryReviews[route.params.galleryId] ?? []} />
+              )}
+            </RootStack.Screen>
+
+            <RootStack.Screen name="ExhibitionEditor" options={{ title: "Exhibition Studio", headerBackTitle: "Back" }}>
+              {({ route, navigation }) => {
+                const exhibitionId = route.params.exhibitionId;
+                const exhibition = exhibitionId ? exhibitionMap.get(exhibitionId) : undefined;
+
+                return (
+                  <OrganizerToolsScreen
+                    key={exhibitionId ?? "new"}
+                    exhibition={exhibition}
+                    formFields={exhibitionId ? exhibitionFormsById[exhibitionId] ?? [] : []}
+                    onOpenFormBuilder={exhibitionId ? () => navigation.navigate("FormBuilder", { exhibitionId }) : undefined}
+                  />
+                );
               }}
-            />
-          )}
-        </RootStack.Screen>
+            </RootStack.Screen>
 
-        <RootStack.Screen name="VisitorTabs" options={{ headerShown: false }}>
-          {({ navigation }) => (
-            <VisitorTabShell
-              onOpenGallery={(galleryId) => navigation.navigate("GalleryDetail", { galleryId })}
-              onSwitchRole={() => {
-                navigation.replace("OrganizerTabs");
-              }}
-              onLogout={() => {
-                navigation.replace("Login");
-              }}
-            />
-          )}
-        </RootStack.Screen>
+            <RootStack.Screen name="FormBuilder" options={{ title: "Form Builder", headerBackTitle: "Back" }}>
+              {({ route }) => (
+                <FormBuilderScreen
+                  key={route.params.exhibitionId}
+                  exhibition={exhibitionMap.get(route.params.exhibitionId)}
+                  initialFields={exhibitionFormsById[route.params.exhibitionId] ?? []}
+                />
+              )}
+            </RootStack.Screen>
 
-        <RootStack.Screen name="OrganizerTabs" options={{ headerShown: false }}>
-          {({ navigation }) => (
-            <OrganizerTabShell
-              onCreateExhibition={() => navigation.navigate("ExhibitionEditor", {})}
-              onEditExhibition={(exhibitionId) => navigation.navigate("ExhibitionEditor", { exhibitionId })}
-              onOpenFormBuilder={(exhibitionId) => navigation.navigate("FormBuilder", { exhibitionId })}
-              onOpenSubmissions={(exhibitionId) => navigation.navigate("SubmissionReview", { exhibitionId })}
-              onSwitchRole={() => {
-                navigation.replace("VisitorTabs");
-              }}
-              onLogout={() => {
-                navigation.replace("Login");
-              }}
-            />
-          )}
-        </RootStack.Screen>
-
-        <RootStack.Screen
-          name="GalleryDetail"
-          options={{ title: "Exhibition Details", headerBackTitle: "Back" }}
-        >
-          {({ route, navigation }) => (
-            <GalleryDetailScreen
-              gallery={galleryMap.get(route.params.galleryId)}
-              reviews={galleryReviews[route.params.galleryId] ?? []}
-              onOpenRegistration={() => navigation.navigate("EventRegistration", { galleryId: route.params.galleryId })}
-              onOpenReview={() => navigation.navigate("ReviewHub", { galleryId: route.params.galleryId })}
-            />
-          )}
-        </RootStack.Screen>
-
-        <RootStack.Screen name="EventRegistration" options={{ title: "Reserve Visit", headerBackTitle: "Back" }}>
-          {({ route }) => (
-            <EventRegistrationScreen
-              gallery={galleryMap.get(route.params.galleryId)}
-              fields={registrationFormsByGallery[route.params.galleryId] ?? []}
-              slots={visitSlotsByGallery[route.params.galleryId] ?? []}
-            />
-          )}
-        </RootStack.Screen>
-
-        <RootStack.Screen name="ReviewHub" options={{ title: "Review & Comment", headerBackTitle: "Back" }}>
-          {({ route }) => (
-            <ReviewHubScreen
-              gallery={galleryMap.get(route.params.galleryId)}
-              reviews={galleryReviews[route.params.galleryId] ?? []}
-            />
-          )}
-        </RootStack.Screen>
-
-        <RootStack.Screen name="ExhibitionEditor" options={{ title: "Exhibition Studio", headerBackTitle: "Back" }}>
-          {({ route, navigation }) => {
-            const exhibitionId = route.params.exhibitionId;
-            const exhibition = exhibitionId ? exhibitionMap.get(exhibitionId) : undefined;
-
-            return (
-              <OrganizerToolsScreen
-                key={exhibitionId ?? "new"}
-                exhibition={exhibition}
-                formFields={exhibitionId ? exhibitionFormsById[exhibitionId] ?? [] : []}
-                onOpenFormBuilder={exhibitionId ? () => navigation.navigate("FormBuilder", { exhibitionId }) : undefined}
-              />
-            );
-          }}
-        </RootStack.Screen>
-
-        <RootStack.Screen name="FormBuilder" options={{ title: "Form Builder", headerBackTitle: "Back" }}>
-          {({ route }) => (
-            <FormBuilderScreen
-              key={route.params.exhibitionId}
-              exhibition={exhibitionMap.get(route.params.exhibitionId)}
-              initialFields={exhibitionFormsById[route.params.exhibitionId] ?? []}
-            />
-          )}
-        </RootStack.Screen>
-
-        <RootStack.Screen name="SubmissionReview" options={{ title: "Submission Review", headerBackTitle: "Back" }}>
-          {({ route }) => (
-            <SubmissionReviewScreen
-              key={route.params.exhibitionId}
-              exhibition={exhibitionMap.get(route.params.exhibitionId)}
-              submissions={exhibitionSubmissionsById[route.params.exhibitionId] ?? []}
-            />
-          )}
-        </RootStack.Screen>
+            <RootStack.Screen name="SubmissionReview" options={{ title: "Submission Review", headerBackTitle: "Back" }}>
+              {({ route }) => (
+                <SubmissionReviewScreen
+                  key={route.params.exhibitionId}
+                  exhibition={exhibitionMap.get(route.params.exhibitionId)}
+                  submissions={exhibitionSubmissionsById[route.params.exhibitionId] ?? []}
+                />
+              )}
+            </RootStack.Screen>
+          </>
+        ) : null}
       </RootStack.Navigator>
     </NavigationContainer>
   );

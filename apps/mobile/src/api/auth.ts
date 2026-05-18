@@ -1,39 +1,44 @@
-import { AuthResponse, LoginDto, RegisterDto } from '../types/api';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
-
-class ApiError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-  }
-}
+import { apiClient } from "./client";
+import type {
+  AuthSessionEnvelope,
+  GoogleContinuationDto,
+  LoginDto,
+  NotificationSettingsDto,
+  RegisterDto,
+  UpdateNotificationSettingsDto,
+} from "../types/api";
+import type { UserRole } from "../types/models";
 
 export const authApi = {
-  async register(data: RegisterDto): Promise<AuthResponse> {
-    const response = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    
-    if (!response.ok) {
-      throw new ApiError(response.status, 'Registration failed');
-    }
-    
-    return response.json();
+  register(data: RegisterDto): Promise<AuthSessionEnvelope> {
+    return apiClient.post<AuthSessionEnvelope>("/auth/register", data);
   },
 
-  async login(data: LoginDto): Promise<AuthResponse> {
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
+  login(data: LoginDto): Promise<AuthSessionEnvelope> {
+    return apiClient.post<AuthSessionEnvelope>("/auth/login", data);
+  },
 
-    if (!response.ok) {
-      throw new ApiError(response.status, 'Login failed');
-    }
+  continueWithGoogle(data: GoogleContinuationDto): Promise<AuthSessionEnvelope> {
+    return apiClient.post<AuthSessionEnvelope>("/auth/google", data);
+  },
 
-    return response.json();
-  }
+  getSession(): Promise<AuthSessionEnvelope> {
+    return apiClient.get<AuthSessionEnvelope>("/auth/session");
+  },
+
+  getCurrentProfile(): Promise<AuthSessionEnvelope> {
+    return apiClient.get<AuthSessionEnvelope>("/users/me");
+  },
+
+  selectActiveRole(role: UserRole): Promise<AuthSessionEnvelope> {
+    return apiClient.post<AuthSessionEnvelope>("/roles/active", { role });
+  },
+
+  getNotificationSettings(): Promise<NotificationSettingsDto> {
+    return apiClient.get<NotificationSettingsDto>("/preferences/me");
+  },
+
+  updateNotificationSettings(updates: UpdateNotificationSettingsDto): Promise<NotificationSettingsDto> {
+    return apiClient.patch<NotificationSettingsDto>("/preferences/me", updates);
+  },
 };

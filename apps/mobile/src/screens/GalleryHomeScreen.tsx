@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { ScreenShell } from "../components/ScreenShell";
 import { palette, radii, spacing, typography } from "../theme/tokens";
-import type { Gallery, GalleryStatus } from "../types/models";
+import type { Gallery, GalleryRegistrationStatus, GalleryStatus } from "../types/models";
 
 type GalleryHomeScreenProps = Readonly<{
   galleries: Gallery[];
@@ -17,11 +17,11 @@ const statusOptions: Array<{ key: GalleryStatus; label: string }> = [
   { key: "past", label: "Archive" }
 ];
 
-const registrationLabel = {
+const registrationLabel: Record<GalleryRegistrationStatus, string> = {
   open: "Open registration",
   waitlist: "Waitlist",
   closed: "Archive replay"
-} as const;
+};
 
 export function GalleryHomeScreen({ galleries, onOpenGallery }: GalleryHomeScreenProps) {
   const [selectedStatus, setSelectedStatus] = useState<GalleryStatus>("present");
@@ -37,7 +37,6 @@ export function GalleryHomeScreen({ galleries, onOpenGallery }: GalleryHomeScree
       (selectedDistrict === "All" || gallery.district === selectedDistrict) &&
       (selectedType === "All" || gallery.type === selectedType)
   );
-  const featuredGallery = filteredGalleries[0] ?? galleries.find((gallery) => gallery.status === selectedStatus) ?? galleries[0];
 
   return (
     <ScreenShell
@@ -45,7 +44,6 @@ export function GalleryHomeScreen({ galleries, onOpenGallery }: GalleryHomeScree
       subtitle="This week: build a route around one live show, one preview, and one archive replay. Timeline tabs, district/type filters, and curated cards keep the decision path simple without flattening the gallery mood."
       headerVariant="dark"
     >
-
       <View style={styles.filterShell}>
         <Pressable style={styles.filterToggle} onPress={() => setFiltersOpen((value) => !value)}>
           <View style={styles.filterIconWrap}>
@@ -214,6 +212,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingBottom: spacing.sm
+  },
+  section: {
+    gap: spacing.md
   },
   filterGroup: {
     gap: spacing.xs

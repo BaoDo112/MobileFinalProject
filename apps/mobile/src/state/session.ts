@@ -1,61 +1,136 @@
-import { create } from 'zustand';
-import * as SecureStore from 'expo-secure-store';
-import { UserRole, User } from '../types/models';
+import { create } from "zustand";
+import * as SecureStore from "expo-secure-store";
+
+import { authApi } from "../api/auth";
+import type { AuthSessionEnvelope, NotificationSettingsDto } from "../types/api";
+import type { OrganizerProfile, User, UserRole, VisitorProfile } from "../types/models";
+
+const TOKEN_KEY = "auth_token";
+const SESSION_KEY = "auth_session_snapshot";
+
+type SessionSnapshot = {
+  user: User;
+  activeRole: UserRole;
+  availableRoles: UserRole[];
+  visitorProfile: VisitorProfile | null;
+  organizerProfile: OrganizerProfile | null;
+  notificationSettings: NotificationSettingsDto | null;
+};
 
 interface SessionState {
   token: string | null;
   user: User | null;
   activeRole: UserRole | null;
+  availableRoles: UserRole[];
+  visitorProfile: VisitorProfile | null;
+  organizerProfile: OrganizerProfile | null;
+  notificationSettings: NotificationSettingsDto | null;
   hasHydrated: boolean;
   hydrate: () => Promise<void>;
-  setSession: (token: string, user: User, overrideRole?: UserRole) => Promise<void>;
+  setSessionEnvelope: (session: AuthSessionEnvelope) => Promise<void>;
+  refreshSession: () => Promise<void>;
   clearSession: () => Promise<void>;
   switchRole: (role: UserRole) => Promise<void>;
 }
 
-export const useSessionStore = create<SessionState>((set) => ({
+function toSnapshot(session: AuthSessionEnvelope): SessionSnapshot {
+  return {
+    user: session.user,
+    activeRole: session.activeRole,
+    availableRoles: session.availableRoles,
+    visitorProfile: session.visitorProfile ?? null,
+    organizerProfile: session.organizerProfile ?? null,
+    notificationSettings: session.notificationSettings ?? null,
+  };
+}
+
+function applySnapshot(snapshot: SessionSnapshot) {
+  return {
+    user: snapshot.user,
+    activeRole: snapshot.activeRole,
+    availableRoles: snapshot.availableRoles,
+    visitorProfile: snapshot.visitorProfile,
+    organizerProfile: snapshot.organizerProfile,
+    notificationSettings: snapshot.notificationSettings,
+  };
+}
+
+export const useSessionStore = create<SessionState>((set, get) => ({
   token: null,
   user: null,
   activeRole: null,
+  availableRoles: [],
+  visitorProfile: null,
+  organizerProfile: null,
+  notificationSettings: null,
   hasHydrated: false,
 
   hydrate: async () => {
     try {
-      const token = await SecureStore.getItemAsync('auth_token');
-      const userStr = await SecureStore.getItemAsync('auth_user');
-      const roleStr = await SecureStore.getItemAsync('active_role');
-      if (token && userStr) {
-        set({ 
-          token, 
-          user: JSON.parse(userStr), 
-          activeRole: (roleStr as UserRole) || null, 
-          hasHydrated: true 
-        });
+      const token = await SecureStore.getItemAsync(TOKEN_KEY);
+      const snapshotRaw = await SecureStore.getItemAsync(SESSION_KEY);
+
+      if (token && snapshotRaw) {
+        const snapshot = JSON.parse(snapshotRaw) as SessionSnapshot;
+        set({ token, ...applySnapshot(snapshot), hasHydrated: true });
         return;
       }
-    } catch (e) {
-      // Hydration failed
+    } catch (error) {
+      console.warn("Session hydration failed", error);
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+      await SecureStore.deleteItemAsync(SESSION_KEY);
     }
-    set({ hasHydrated: true });
+
+    set({
+      token: null,
+      user: null,
+      activeRole: null,
+      availableRoles: [],
+      visitorProfile: null,
+      organizerProfile: null,
+      notificationSettings: null,
+      hasHydrated: true,
+    });
   },
 
-  setSession: async (token, user, overrideRole) => {
-    await SecureStore.setItemAsync('auth_token', token);
-    await SecureStore.setItemAsync('auth_user', JSON.stringify(user));
-    const role = overrideRole || user.role;
-    await SecureStore.setItemAsync('active_role', role);
-    set({ token, user, activeRole: role });
+  setSessionEnvelope: async (session) => {
+    const snapshot = toSnapshot(session);
+    await SecureStore.setItemAsync(TOKEN_KEY, session.token);
+    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(snapshot));
+    set({ token: session.token, ...applySnapshot(snapshot) });
+  },
+
+  refreshSession: async () => {
+    const token = get().token;
+    if (!token) {
+      return;
+    }
+
+    const session = await authApi.getSession();
+    await get().setSessionEnvelope(session);
   },
 
   clearSession: async () => {
-    await SecureStore.deleteItemAsync('auth_token');
-    await SecureStore.deleteItemAsync('auth_user');
-    await SecureStore.deleteItemAsync('active_role');
-    set({ token: null, user: null, activeRole: null });
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await SecureStore.deleteItemAsync(SESSION_KEY);
+    set({
+      token: null,
+      user: null,
+      activeRole: null,
+      availableRoles: [],
+      visitorProfile: null,
+      organizerProfile: null,
+      notificationSettings: null,
+    });
   },
 
   switchRole: async (role) => {
-    await SecureStore.setItemAsync('active_role', role);
-    set({ activeRole: role });
-  }
+    const token = get().token;
+    if (!token) {
+      return;
+    }
+
+    const session = await authApi.selectActiveRole(role);
+    await get().setSessionEnvelope(session);
+  },
 }));

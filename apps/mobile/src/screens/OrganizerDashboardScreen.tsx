@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ScreenShell } from "../components/ScreenShell";
 import { palette, radii, spacing, typography } from "../theme/tokens";
-import type { ExhibitionStatus, OrganizerExhibition } from "../types/models";
+import type { OrganizerExhibition, OrganizerExhibitionStatus } from "../types/models";
 
 type OrganizerDashboardScreenProps = Readonly<{
   exhibitions: OrganizerExhibition[];
@@ -13,7 +13,7 @@ type OrganizerDashboardScreenProps = Readonly<{
   onOpenSubmissions: (exhibitionId: string) => void;
 }>;
 
-const statusOptions: Array<{ key: ExhibitionStatus | "all"; label: string }> = [
+const statusOptions: Array<{ key: OrganizerExhibitionStatus | "all"; label: string }> = [
   { key: "all", label: "All" },
   { key: "published", label: "Published" },
   { key: "review", label: "Review" },
@@ -27,7 +27,7 @@ export function OrganizerDashboardScreen({
   onOpenFormBuilder,
   onOpenSubmissions
 }: OrganizerDashboardScreenProps) {
-  const [selectedStatus, setSelectedStatus] = useState<ExhibitionStatus | "all">("all");
+  const [selectedStatus, setSelectedStatus] = useState<OrganizerExhibitionStatus | "all">("all");
   const visibleExhibitions = selectedStatus === "all" ? exhibitions : exhibitions.filter((item) => item.status === selectedStatus);
 
   return (

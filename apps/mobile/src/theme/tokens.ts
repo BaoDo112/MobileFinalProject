@@ -41,5 +41,6 @@ export const radii = {
 export const typography = {
   display: Platform.select({ ios: "Georgia", android: "serif", default: "serif" }) ?? "serif",
   body: Platform.select({ ios: "Avenir Next", android: "sans-serif-medium", default: "sans-serif" }) ?? "sans-serif",
-  mono: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }) ?? "monospace"
+  mono: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }) ?? "monospace",
+  h3: Platform.select({ ios: "Georgia", android: "serif", default: "serif" }) ?? "serif"
 } as const;

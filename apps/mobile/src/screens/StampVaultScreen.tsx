@@ -107,11 +107,13 @@ function renderStampCard(
     .join("")
     .toUpperCase() || stamp.title.slice(0, 2).toUpperCase();
 
-  const statusText = stamp.vaultSection === "CONFIRMED"
-    ? "Confirmed attendance"
-    : stamp.vaultSection === "UPCOMING"
-      ? "Registered, upcoming"
-      : "Registered, expired";
+  let statusText = "Registered, expired";
+
+  if (stamp.vaultSection === "CONFIRMED") {
+    statusText = "Confirmed attendance";
+  } else if (stamp.vaultSection === "UPCOMING") {
+    statusText = "Registered, upcoming";
+  }
 
   return (
     <Pressable
