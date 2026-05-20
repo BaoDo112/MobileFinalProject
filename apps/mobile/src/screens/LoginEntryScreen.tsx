@@ -65,8 +65,10 @@ export function LoginEntryScreen() {
 
   const submitAuth = handleSubmit(async (values) => {
     setAuthError(null);
+    const displayName = values.name?.trim();
+    const registrationName = displayName ?? "";
 
-    if (mode === "signup" && !values.name?.trim()) {
+    if (mode === "signup" && !displayName) {
       setAuthError("Create account requires a display name.");
       return;
     }
@@ -79,7 +81,7 @@ export function LoginEntryScreen() {
               password: values.password,
               provider: "LOCAL",
               role: selectedRole,
-              name: values.name!.trim(),
+              name: registrationName,
             })
           : await authApi.login({
               email: values.email,
@@ -129,10 +131,18 @@ export function LoginEntryScreen() {
       </View>
 
       <View style={styles.modeRow}>
-        <Pressable style={[styles.modeButton, mode === "signin" && styles.modeButtonActive]} onPress={() => setMode("signin")}>
+        <Pressable
+          style={[styles.modeButton, mode === "signin" && styles.modeButtonActive]}
+          onPress={() => setMode("signin")}
+          testID="login-mode-signin"
+        >
           <Text style={[styles.modeText, mode === "signin" && styles.modeTextActive]}>Sign in</Text>
         </Pressable>
-        <Pressable style={[styles.modeButton, mode === "signup" && styles.modeButtonActive]} onPress={() => setMode("signup")}>
+        <Pressable
+          style={[styles.modeButton, mode === "signup" && styles.modeButtonActive]}
+          onPress={() => setMode("signup")}
+          testID="login-mode-signup"
+        >
           <Text style={[styles.modeText, mode === "signup" && styles.modeTextActive]}>Create account</Text>
         </Pressable>
       </View>
@@ -214,6 +224,7 @@ export function LoginEntryScreen() {
               key={role}
               style={[styles.roleButton, selectedRole === role && styles.roleButtonActive]}
               onPress={() => setSelectedRole(role)}
+              testID={role === "VISITOR" ? "login-role-visitor" : "login-role-organizer"}
             >
               <Text style={[styles.roleTitle, selectedRole === role && styles.roleTitleActive]}>{role === "VISITOR" ? "Visitor" : "Organizer"}</Text>
               <Text style={[styles.roleDescription, selectedRole === role && styles.roleDescriptionActive]}>
@@ -236,11 +247,13 @@ export function LoginEntryScreen() {
           void submitAuth();
         }}
         primaryDisabled={isSubmitting}
+        primaryTestID="login-submit"
         secondaryLabel={isSubmitting ? undefined : "Continue with Google"}
         onSecondaryPress={() => {
           void continueWithGoogle();
         }}
-        helperText="Demo accounts: visitor@arthera.local / visitor123 and organizer@arthera.local / organizer123"
+        secondaryTestID="login-google"
+        helperText="Local sign-up is enabled in dev. If you want pre-seeded demo accounts, set ARTHERA_DEMO_VISITOR_PASSWORD and ARTHERA_DEMO_ORGANIZER_PASSWORD in the API env."
       />
 
       <View style={styles.supportRow}>

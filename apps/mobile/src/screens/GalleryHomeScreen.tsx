@@ -1,42 +1,209 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+import { EmptyStateBanner } from "../components/EmptyStateBanner";
+import { ErrorRecoveryPanel } from "../components/ErrorRecoveryPanel";
 import { ScreenShell } from "../components/ScreenShell";
+import { StatusChip } from "../components/StatusChip";
+import { useDiscover } from "../query/useDiscover";
 import { palette, radii, spacing, typography } from "../theme/tokens";
-import type { Gallery, GalleryRegistrationStatus, GalleryStatus } from "../types/models";
+import type { ExhibitionSummaryDto, RegistrationCtaState } from "../types/api";
+import type { GalleryStatus } from "../types/models";
 
 type GalleryHomeScreenProps = Readonly<{
-  galleries: Gallery[];
   onOpenGallery: (galleryId: string) => void;
 }>;
 
 const statusOptions: Array<{ key: GalleryStatus; label: string }> = [
   { key: "present", label: "Now On" },
   { key: "future", label: "Upcoming" },
-  { key: "past", label: "Archive" }
+  { key: "past", label: "Archive" },
 ];
 
-const registrationLabel: Record<GalleryRegistrationStatus, string> = {
+const registrationLabel: Record<RegistrationCtaState, string> = {
   open: "Open registration",
-  waitlist: "Waitlist",
-  closed: "Archive replay"
+  waitlist: "Waitlist open",
+  closed: "Registration closed",
 };
 
-export function GalleryHomeScreen({ galleries, onOpenGallery }: GalleryHomeScreenProps) {
+type FilterChipRowProps = Readonly<{
+  label: string;
+  options: string[];
+  selectedValue: string;
+  onSelect: (value: string) => void;
+}>;
+
+type DiscoverResultsSectionProps = Readonly<{
+  isLoading: boolean;
+  isFetching: boolean;
+  error: unknown;
+  filteredExhibitions: ExhibitionSummaryDto[];
+  allExhibitionsCount: number;
+  onRetry: () => void;
+  onResetFilters: () => void;
+  onOpenGallery: (galleryId: string) => void;
+}>;
+
+function FilterChipRow({ label, options, selectedValue, onSelect }: FilterChipRowProps) {
+  return (
+    <View style={styles.filterGroup}>
+      <Text style={styles.filterGroupLabel}>{label}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterStrip}>
+        {options.map((option) => (
+          <Pressable
+            key={option}
+            onPress={() => onSelect(option)}
+            style={[styles.filterChip, selectedValue === option && styles.filterChipActive]}
+          >
+            <Text style={[styles.filterChipText, selectedValue === option && styles.filterChipTextActive]}>{option}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+function DiscoverCard({ exhibition, onOpenGallery }: Readonly<{ exhibition: ExhibitionSummaryDto; onOpenGallery: (galleryId: string) => void }>) {
+  return (
+    <Pressable key={exhibition.id} onPress={() => onOpenGallery(exhibition.id)} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+      {({ pressed }) => (
+        <>
+          <View style={[styles.accentBar, { backgroundColor: exhibition.accent ?? palette.accent }]} />
+          <View style={styles.cardImageSlot}>
+            <View style={styles.cardImageOverlay} />
+            <Text style={styles.cardImageLabel}>{exhibition.venueTitle ?? "Venue to be confirmed"}</Text>
+            <View style={styles.cardImageEmpty}>
+              <Ionicons name="sparkles-outline" size={22} color={palette.textMuted} />
+              <Text style={styles.cardImageEmptyText}>{exhibition.capacityBadge}</Text>
+            </View>
+          </View>
+          <View style={[styles.badgeRow, pressed && styles.badgeRowPressed]}>
+            <Text style={[styles.typeBadge, pressed && styles.typeBadgePressed]}>{exhibition.exhibitionType}</Text>
+            <Text style={[styles.statusText, pressed && styles.statusTextPressed]}>{registrationLabel[exhibition.registrationState]}</Text>
+          </View>
+          <Text style={styles.cardTitle}>{exhibition.title}</Text>
+          <Text style={styles.cardMeta}>{exhibition.dateLabel} · {exhibition.timeLabel}</Text>
+          <Text style={styles.cardMeta}>{exhibition.district} · {exhibition.organizerName}</Text>
+          {exhibition.bio ? <Text style={styles.cardCopy}>{exhibition.bio}</Text> : null}
+          <View style={styles.highlightRow}>
+            <View style={styles.highlightChip}>
+              <Text style={styles.highlightText}>{exhibition.capacityBadge}</Text>
+            </View>
+            {exhibition.venueTitle ? (
+              <View style={styles.highlightChip}>
+                <Text style={styles.highlightText}>{exhibition.venueTitle}</Text>
+              </View>
+            ) : null}
+          </View>
+        </>
+      )}
+    </Pressable>
+  );
+}
+
+function DiscoverResultsSection({
+  isLoading,
+  isFetching,
+  error,
+  filteredExhibitions,
+  allExhibitionsCount,
+  onRetry,
+  onResetFilters,
+  onOpenGallery,
+}: DiscoverResultsSectionProps) {
+  if (isLoading) {
+    return <StatusChip label="Loading filtered results" tone="neutral" />;
+  }
+
+  if (error) {
+    return (
+      <ErrorRecoveryPanel
+        title="Discover filters need another try"
+        description={error instanceof Error ? error.message : "Filtered discover query failed."}
+        onRetry={onRetry}
+      />
+    );
+  }
+
+  if (filteredExhibitions.length === 0) {
+    return (
+      <EmptyStateBanner
+        title={allExhibitionsCount === 0 ? "No exhibitions are published yet." : "No exhibition matches this filter mix yet."}
+        description={
+          allExhibitionsCount === 0
+            ? "Publish the first exhibition or switch the API dataset to reopen the visitor browse path."
+            : "Switch the district or type filter to reopen the timeline. The discover flow keeps empty states explicit instead of hiding results."
+        }
+        actionLabel="Reset filters"
+        onAction={onResetFilters}
+      />
+    );
+  }
+
+  return (
+    <>
+      {isFetching ? <StatusChip label="Refreshing results" tone="neutral" /> : null}
+      {filteredExhibitions.map((exhibition) => (
+        <DiscoverCard key={exhibition.id} exhibition={exhibition} onOpenGallery={onOpenGallery} />
+      ))}
+    </>
+  );
+}
+
+export function GalleryHomeScreen({ onOpenGallery }: GalleryHomeScreenProps) {
   const [selectedStatus, setSelectedStatus] = useState<GalleryStatus>("present");
   const [selectedDistrict, setSelectedDistrict] = useState<string>("All");
   const [selectedType, setSelectedType] = useState<string>("All");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const districts = ["All", ...new Set(galleries.map((gallery) => gallery.district))];
-  const types = ["All", ...new Set(galleries.map((gallery) => gallery.type))];
-  const filteredGalleries = galleries.filter(
-    (gallery) =>
-      gallery.status === selectedStatus &&
-      (selectedDistrict === "All" || gallery.district === selectedDistrict) &&
-      (selectedType === "All" || gallery.type === selectedType)
-  );
+  const catalogQuery = useDiscover();
+  const filteredQuery = useDiscover({
+    timeline: selectedStatus,
+    district: selectedDistrict === "All" ? undefined : selectedDistrict,
+    type: selectedType === "All" ? undefined : selectedType,
+  });
+
+  const allExhibitions = catalogQuery.data ?? [];
+  const filteredExhibitions = filteredQuery.data ?? [];
+  const districts = useMemo(() => ["All", ...new Set(allExhibitions.map((exhibition) => exhibition.district))], [allExhibitions]);
+  const types = useMemo(() => ["All", ...new Set(allExhibitions.map((exhibition) => exhibition.exhibitionType))], [allExhibitions]);
+  const handleCatalogRetry = () => {
+    catalogQuery.refetch();
+    filteredQuery.refetch();
+  };
+  const handleFilteredRetry = () => {
+    filteredQuery.refetch();
+  };
+  const handleResetFilters = () => {
+    setSelectedStatus("present");
+    setSelectedDistrict("All");
+    setSelectedType("All");
+  };
+
+  if (catalogQuery.isLoading && !catalogQuery.data) {
+    return (
+      <ScreenShell
+        title="Browse exhibition"
+        subtitle="Loading the live discover feed, timeline states, and venue availability."
+        headerVariant="dark"
+      >
+        <StatusChip label="Loading discover feed" tone="neutral" />
+      </ScreenShell>
+    );
+  }
+
+  if (catalogQuery.isError && !catalogQuery.data) {
+    return (
+      <ScreenShell
+        title="Browse exhibition"
+        subtitle="The discover feed could not be restored from the backend read model."
+        headerVariant="dark"
+      >
+        <ErrorRecoveryPanel description={catalogQuery.error instanceof Error ? catalogQuery.error.message : "Discover query failed."} onRetry={handleCatalogRetry} />
+      </ScreenShell>
+    );
+  }
 
   return (
     <ScreenShell
@@ -60,121 +227,41 @@ export function GalleryHomeScreen({ galleries, onOpenGallery }: GalleryHomeScree
 
         {filtersOpen ? (
           <View style={styles.filterDrawer}>
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterGroupLabel}>Timeline</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterStrip}>
-                {statusOptions.map((option) => (
-                  <Pressable
-                    key={option.key}
-                    onPress={() => setSelectedStatus(option.key)}
-                    style={[styles.filterChip, selectedStatus === option.key && styles.filterChipActive]}
-                  >
-                    <Text style={[styles.filterChipText, selectedStatus === option.key && styles.filterChipTextActive]}>{option.label}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterGroupLabel}>District</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterStrip}>
-                {districts.map((district) => (
-                  <Pressable
-                    key={district}
-                    onPress={() => setSelectedDistrict(district)}
-                    style={[styles.filterChip, selectedDistrict === district && styles.filterChipActive]}
-                  >
-                    <Text style={[styles.filterChipText, selectedDistrict === district && styles.filterChipTextActive]}>{district}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterGroupLabel}>Type</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterStrip}>
-                {types.map((type) => (
-                  <Pressable
-                    key={type}
-                    onPress={() => setSelectedType(type)}
-                    style={[styles.filterChip, selectedType === type && styles.filterChipActive]}
-                  >
-                    <Text style={[styles.filterChipText, selectedType === type && styles.filterChipTextActive]}>{type}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
+            <FilterChipRow
+              label="Timeline"
+              options={statusOptions.map((option) => option.key)}
+              selectedValue={selectedStatus}
+              onSelect={(value) => setSelectedStatus(value as GalleryStatus)}
+            />
+            <FilterChipRow label="District" options={districts} selectedValue={selectedDistrict} onSelect={setSelectedDistrict} />
+            <FilterChipRow label="Type" options={types} selectedValue={selectedType} onSelect={setSelectedType} />
           </View>
         ) : null}
       </View>
 
       <View style={styles.section}>
-        {filteredGalleries.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No gallery matches this filter mix yet.</Text>
-            <Text style={styles.emptyText}>Switch the district or type filter to reopen the timeline. The flow keeps empty states explicit instead of silently hiding results.</Text>
-          </View>
-        ) : (
-          filteredGalleries.map((gallery) => (
-            <Pressable key={gallery.id} onPress={() => onOpenGallery(gallery.id)} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-              {({ pressed }) => (
-                <>
-                  <View style={[styles.accentBar, { backgroundColor: gallery.accent }]} />
-                  <View style={styles.cardImageSlot}>
-                    {gallery.images?.[0] ? (
-                      <>
-                        <View style={styles.cardImageOverlay} />
-                        <Text style={styles.cardImageLabel}>{gallery.images[0]}</Text>
-                      </>
-                    ) : (
-                      <View style={styles.cardImageEmpty}>
-                        <Ionicons name="image-outline" size={22} color={palette.textMuted} />
-                        <Text style={styles.cardImageEmptyText}>No image</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={[styles.badgeRow, pressed && styles.badgeRowPressed]}>
-                    <Text style={[styles.typeBadge, pressed && styles.typeBadgePressed]}>{gallery.type}</Text>
-                    <Text style={[styles.statusText, pressed && styles.statusTextPressed]}>{registrationLabel[gallery.registrationStatus]}</Text>
-                  </View>
-                  <Text style={styles.cardTitle}>{gallery.title}</Text>
-                  <Text style={styles.cardMeta}>{gallery.dateLabel} · {gallery.timeLabel}</Text>
-                  <Text style={styles.cardMeta}>{gallery.district} · {gallery.organizer}</Text>
-                  <Text style={styles.cardCopy}>{gallery.bio}</Text>
-                  <View style={styles.highlightRow}>
-                    {gallery.highlights.slice(0, 2).map((highlight) => (
-                      <View key={highlight} style={styles.highlightChip}>
-                        <Text style={styles.highlightText}>{highlight}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </>
-              )}
-            </Pressable>
-          ))
-        )}
+        <DiscoverResultsSection
+          isLoading={filteredQuery.isLoading && !filteredQuery.data}
+          isFetching={filteredQuery.isFetching}
+          error={filteredQuery.isError ? filteredQuery.error : null}
+          filteredExhibitions={filteredExhibitions}
+          allExhibitionsCount={allExhibitions.length}
+          onRetry={handleFilteredRetry}
+          onResetFilters={handleResetFilters}
+          onOpenGallery={onOpenGallery}
+        />
       </View>
     </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    padding: spacing.md,
-    gap: spacing.xs,
-    backgroundColor: palette.card,
-    borderRadius: radii.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: palette.muted,
-  },
   filterShell: {
     backgroundColor: palette.card,
     borderColor: palette.border,
     borderWidth: 1,
     borderRadius: radii.lg,
-    padding: spacing.xs
+    padding: spacing.xs,
   },
   filterToggle: {
     flexDirection: "row",
@@ -182,7 +269,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    minHeight: 52
+    minHeight: 52,
   },
   filterIconWrap: {
     width: 28,
@@ -191,33 +278,33 @@ const styles = StyleSheet.create({
     backgroundColor: palette.text,
     alignItems: "center",
     justifyContent: "center",
-    flexShrink: 0
+    flexShrink: 0,
   },
   filterToggleTextWrap: {
     flex: 1,
-    gap: 2
+    gap: 2,
   },
   filterToggleTitle: {
     color: palette.text,
     fontFamily: typography.body,
     fontSize: 14,
-    fontWeight: "700"
+    fontWeight: "700",
   },
   filterToggleSubtitle: {
     color: palette.textMuted,
     fontFamily: typography.body,
-    fontSize: 12
+    fontSize: 12,
   },
   filterDrawer: {
     gap: spacing.sm,
     paddingHorizontal: spacing.sm,
-    paddingBottom: spacing.sm
+    paddingBottom: spacing.sm,
   },
   section: {
-    gap: spacing.md
+    gap: spacing.md,
   },
   filterGroup: {
-    gap: spacing.xs
+    gap: spacing.xs,
   },
   filterGroupLabel: {
     color: palette.text,
@@ -225,14 +312,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.8
+    letterSpacing: 0.8,
   },
   filterStrip: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
     paddingRight: spacing.sm,
-    flexGrow: 1
+    flexGrow: 1,
   },
   filterChip: {
     backgroundColor: palette.muted,
@@ -240,48 +327,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
     minHeight: 34,
-    justifyContent: "center"
+    justifyContent: "center",
   },
   filterChipActive: {
-    backgroundColor: palette.text
+    backgroundColor: palette.text,
   },
   filterChipText: {
     color: palette.textMuted,
     fontSize: 13,
     fontWeight: "700",
-    fontFamily: typography.body
+    fontFamily: typography.body,
   },
   filterChipTextActive: {
-    color: palette.background
-  },
-  featuredCard: {
-    backgroundColor: palette.card,
-    borderRadius: radii.lg,
-    borderColor: palette.border,
-    borderWidth: 1,
-    padding: spacing.lg,
-    gap: spacing.xs,
-    overflow: "hidden"
+    color: palette.background,
   },
   accentBar: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 6
-  },
-  featuredTitle: {
-    color: palette.text,
-    fontFamily: typography.display,
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: "700"
-  },
-  featuredCopy: {
-    color: palette.textMuted,
-    fontFamily: typography.body,
-    fontSize: 14,
-    lineHeight: 20
+    height: 6,
   },
   card: {
     backgroundColor: palette.card,
@@ -290,12 +355,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: spacing.md,
     gap: spacing.xs,
-    overflow: "hidden"
+    overflow: "hidden",
   },
   cardPressed: {
     borderColor: palette.accent,
     backgroundColor: palette.backgroundAlt,
-    transform: [{ scale: 0.99 }]
+    transform: [{ scale: 0.99 }],
   },
   cardImageSlot: {
     height: 160,
@@ -303,11 +368,12 @@ const styles = StyleSheet.create({
     backgroundColor: palette.backgroundAlt,
     marginBottom: spacing.xs,
     overflow: "hidden",
-    justifyContent: "flex-end"
+    justifyContent: "space-between",
+    paddingBottom: spacing.md,
   },
   cardImageOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(37, 23, 19, 0.08)"
+    backgroundColor: "rgba(37, 23, 19, 0.08)",
   },
   cardImageLabel: {
     color: palette.text,
@@ -320,30 +386,31 @@ const styles = StyleSheet.create({
     margin: spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
-    borderRadius: radii.pill
+    borderRadius: radii.pill,
   },
   cardImageEmpty: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.xs
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
   },
   cardImageEmptyText: {
     color: palette.textMuted,
     fontFamily: typography.body,
     fontSize: 12,
     fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8
+    letterSpacing: 0.5,
+    textAlign: "center",
   },
   badgeRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     gap: spacing.sm,
-    alignItems: "center"
+    alignItems: "center",
   },
   badgeRowPressed: {
-    gap: spacing.xs
+    gap: spacing.xs,
   },
   typeBadge: {
     backgroundColor: palette.backgroundAlt,
@@ -353,11 +420,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     fontWeight: "700",
     overflow: "hidden",
-    fontFamily: typography.body
+    fontFamily: typography.body,
   },
   typeBadgePressed: {
     backgroundColor: palette.text,
-    color: palette.background
+    color: palette.background,
   },
   statusText: {
     color: palette.text,
@@ -370,68 +437,47 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: radii.pill,
     overflow: "hidden",
-    letterSpacing: 0.6
+    letterSpacing: 0.6,
   },
   statusTextPressed: {
     backgroundColor: palette.accent,
     color: palette.white,
-    letterSpacing: 0.9
+    letterSpacing: 0.9,
   },
   cardTitle: {
     color: palette.text,
     fontSize: 24,
     lineHeight: 30,
     fontWeight: "700",
-    fontFamily: typography.display
+    fontFamily: typography.display,
   },
   cardMeta: {
     color: palette.textMuted,
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: typography.body
+    fontFamily: typography.body,
   },
   cardCopy: {
     color: palette.text,
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: typography.body
+    fontFamily: typography.body,
   },
   highlightRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.xs
+    gap: spacing.xs,
   },
   highlightChip: {
     backgroundColor: palette.muted,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 6
+    paddingVertical: 6,
   },
   highlightText: {
     color: palette.text,
     fontSize: 12,
     fontFamily: typography.body,
-    fontWeight: "600"
+    fontWeight: "600",
   },
-  emptyCard: {
-    backgroundColor: palette.card,
-    borderRadius: radii.lg,
-    borderColor: palette.border,
-    borderWidth: 1,
-    padding: spacing.lg,
-    gap: spacing.xs
-  },
-  emptyTitle: {
-    color: palette.text,
-    fontFamily: typography.display,
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: "700"
-  },
-  emptyText: {
-    color: palette.textMuted,
-    fontFamily: typography.body,
-    fontSize: 14,
-    lineHeight: 20
-  }
 });

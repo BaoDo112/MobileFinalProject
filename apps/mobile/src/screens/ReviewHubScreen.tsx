@@ -1,85 +1,304 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { formatDistanceToNow, parseISO } from "date-fns";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { ApiError } from "../api/client";
+import { EmptyStateBanner } from "../components/EmptyStateBanner";
+import { ErrorRecoveryPanel } from "../components/ErrorRecoveryPanel";
 import { ScreenShell } from "../components/ScreenShell";
+import { StatusChip } from "../components/StatusChip";
+import { useReviewHub } from "../query/useReviewHub";
 import { palette, radii, spacing, typography } from "../theme/tokens";
-import type { Gallery, Review } from "../types/models";
+import type { ReviewHubDto, ReviewItemDto } from "../types/api";
+import type { ReviewStatus } from "../types/models";
 
 type ReviewHubScreenProps = Readonly<{
-  gallery?: Gallery;
-  reviews: Review[];
+  exhibitionId: string;
 }>;
 
-export function ReviewHubScreen({ gallery, reviews }: ReviewHubScreenProps) {
+function formatTimestamp(value?: string) {
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    return formatDistanceToNow(parseISO(value), { addSuffix: true });
+  } catch {
+    return value;
+  }
+}
+
+function getReviewStatusTone(status?: ReviewStatus): "neutral" | "success" | "warning" | "danger" {
+  if (status === "PUBLISHED") {
+    return "success";
+  }
+
+  if (status === "PENDING") {
+    return "warning";
+  }
+
+  if (status === "FLAGGED" || status === "HIDDEN") {
+    return "danger";
+  }
+
+  return "neutral";
+}
+
+function formatReviewStatus(status?: ReviewStatus) {
+  return status ? status.toLowerCase() : "draft";
+}
+
+function getReviewErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.code === "REVIEW_LOCKED") {
+      return "Reviews unlock only after the organizer confirms your attendance at check-in.";
+    }
+
+    if (error.code === "REVIEW_TOO_SHORT") {
+      return "Describe the on-site experience in one concrete sentence before saving.";
+    }
+
+    if (error.code === "INVALID_RATING") {
+      return "Choose a rating between 1 and 5 before saving.";
+    }
+  }
+
+  return error instanceof Error ? error.message : "Review save failed.";
+}
+
+function LoadingReviewHubScreen() {
+  return (
+    <ScreenShell eyebrow="Visitor flow" title="Review & comment" subtitle="Loading review eligibility, composer state, and public feedback.">
+      <StatusChip label="Loading review hub" tone="neutral" />
+    </ScreenShell>
+  );
+}
+
+function ReviewHubErrorScreen({ description, onRetry }: Readonly<{ description: string; onRetry: () => void }>) {
+  return (
+    <ScreenShell eyebrow="Visitor flow" title="Review & comment" subtitle="The post-visit review surface could not be restored.">
+      <ErrorRecoveryPanel description={description} onRetry={onRetry} />
+    </ScreenShell>
+  );
+}
+
+function getEligibilityCopy(hub: ReviewHubDto) {
+  if (hub.eligibility.isEligible) {
+    return hub.eligibility.rewardNotice ?? "Publishing one post-visit review can unlock the review milestone stamp.";
+  }
+
+  return hub.eligibility.reason ?? "Organizer check-in unlocks the review composer after your visit.";
+}
+
+function EligibleComposer({
+  rating,
+  comment,
+  setRating,
+  setComment,
+  isPending,
+  canSubmit,
+  onSave,
+}: Readonly<{
+  rating: number;
+  comment: string;
+  setRating: (value: number) => void;
+  setComment: (value: string) => void;
+  isPending: boolean;
+  canSubmit: boolean;
+  onSave: () => void;
+}>) {
+  return (
+    <>
+      <Text style={styles.label}>Your rating</Text>
+      <View style={styles.ratingRow}>
+        {[1, 2, 3, 4, 5].map((value) => (
+          <Pressable
+            key={value}
+            onPress={() => setRating(value)}
+            style={[styles.ratingChip, rating === value && styles.ratingChipActive]}
+          >
+            <Text style={[styles.ratingText, rating === value && styles.ratingTextActive]}>{value}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Text style={styles.label}>Short comment</Text>
+      <TextInput
+        value={comment}
+        onChangeText={setComment}
+        style={styles.input}
+        editable={!isPending}
+        placeholder="What actually stood out once the exhibition unfolded in person?"
+        placeholderTextColor={palette.textMuted}
+        multiline
+      />
+      <Text style={styles.metaText}>At least 24 characters. Links and contact details stay pending for moderation.</Text>
+      <Pressable style={[styles.primaryButton, !canSubmit && styles.primaryButtonDisabled]} disabled={!canSubmit} onPress={onSave}>
+        <Text style={styles.primaryButtonText}>{isPending ? "Saving review..." : "Save review"}</Text>
+      </Pressable>
+    </>
+  );
+}
+
+function ReviewComposerPanel({
+  hub,
+  rating,
+  comment,
+  setRating,
+  setComment,
+  isPending,
+  isError,
+  error,
+  onSave,
+}: Readonly<{
+  hub: ReviewHubDto;
+  rating: number;
+  comment: string;
+  setRating: (value: number) => void;
+  setComment: (value: string) => void;
+  isPending: boolean;
+  isError: boolean;
+  error: unknown;
+  onSave: () => void;
+}>) {
+  const canSubmit = hub.eligibility.isEligible && comment.trim().length >= 24 && !isPending;
+  const composerStatusTimestamp = formatTimestamp(hub.composer.submittedAt);
+
+  return (
+    <View style={styles.panel}>
+      <View style={styles.panelHeader}>
+        <Text style={styles.sectionTitle}>{hub.eligibility.isEligible ? "Your review" : "Review unlock"}</Text>
+        {hub.composer.status ? <StatusChip label={formatReviewStatus(hub.composer.status)} tone={getReviewStatusTone(hub.composer.status)} /> : null}
+      </View>
+      <Text style={styles.helper}>{getEligibilityCopy(hub)}</Text>
+      {hub.eligibility.checkedInAt ? <Text style={styles.metaText}>Checked in {formatTimestamp(hub.eligibility.checkedInAt)}</Text> : null}
+      {composerStatusTimestamp ? <Text style={styles.metaText}>Last saved {composerStatusTimestamp}</Text> : null}
+
+      {hub.eligibility.isEligible ? (
+        <EligibleComposer
+          rating={rating}
+          comment={comment}
+          setRating={setRating}
+          setComment={setComment}
+          isPending={isPending}
+          canSubmit={canSubmit}
+          onSave={onSave}
+        />
+      ) : (
+        <EmptyStateBanner
+          title="Attendance confirmation required"
+          description="You can read public feedback now, but your own review opens only after the organizer confirms you attended."
+        />
+      )}
+
+      {isError ? (
+        <ErrorRecoveryPanel
+          title="Review could not be saved"
+          description={getReviewErrorMessage(error)}
+          retryLabel="Try save again"
+          onRetry={onSave}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+function RecentReviewsPanel({ reviews }: Readonly<{ reviews: ReviewItemDto[] }>) {
+  return (
+    <View style={styles.panel}>
+      <Text style={styles.sectionTitle}>Recent comments</Text>
+      {reviews.length === 0 ? (
+        <EmptyStateBanner
+          title="No public reviews yet"
+          description="Once a checked-in visitor publishes feedback, the first review appears here and in the exhibition detail preview."
+        />
+      ) : null}
+      {reviews.map((review) => (
+        <View key={review.id} style={styles.reviewCard}>
+          <View style={styles.badgeRow}>
+            <Text style={styles.reviewAuthor}>{review.authorName}</Text>
+            <Text style={styles.statusText}>{review.rating}/5 · {formatTimestamp(review.createdAt)}</Text>
+          </View>
+          <Text style={styles.helper}>{review.content}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export function ReviewHubScreen({ exhibitionId }: ReviewHubScreenProps) {
+  const { reviewQuery, saveReviewMutation } = useReviewHub(exhibitionId);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
-  const [submitted, setSubmitted] = useState(false);
 
-  if (!gallery) {
+  useEffect(() => {
+    if (!reviewQuery.data) {
+      return;
+    }
+
+    setRating(reviewQuery.data.composer.rating);
+    setComment(reviewQuery.data.composer.content);
+  }, [reviewQuery.data?.composer.content, reviewQuery.data?.composer.rating, reviewQuery.data?.composer.reviewId, reviewQuery.data?.composer.status]);
+
+  if (reviewQuery.isLoading && !reviewQuery.data) {
+    return <LoadingReviewHubScreen />;
+  }
+
+  if (reviewQuery.isError || !reviewQuery.data) {
     return (
-      <ScreenShell eyebrow="Visitor flow" title="Rate and comment" subtitle="Gallery was not found.">
-        <Text style={styles.helper}>Return to the exhibition card and reopen the feedback route.</Text>
-      </ScreenShell>
+      <ReviewHubErrorScreen
+        description={reviewQuery.error instanceof Error ? reviewQuery.error.message : "Review hub query failed."}
+        onRetry={() => reviewQuery.refetch()}
+      />
     );
   }
 
-  const averageRating = reviews.length > 0 ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1) : "New";
+  const hub = reviewQuery.data;
+  const handleSave = () => {
+    saveReviewMutation.mutate({ rating, content: comment.trim() });
+  };
 
   return (
     <ScreenShell
       eyebrow="Visitor flow"
-      title="Rate and comment"
-      subtitle="Feedback is separated into its own screen so the post-visit flow stays obvious and the stamp rule is easy to explain."
+      title="Review & comment"
+      subtitle="Post-visit feedback now follows the same attendance truth as queue check-in and stamp rewards."
     >
       <View style={styles.summaryCard}>
-        <Text style={styles.kicker}>{gallery.title}</Text>
-        <Text style={styles.heroTitle}>{averageRating}/5 community rating</Text>
-        <Text style={styles.helper}>Leave one strong line of feedback, then the passport vault can explain why a comment unlocked a reward.</Text>
+        <Text style={styles.kicker}>{hub.exhibitionTitle}</Text>
+        <Text style={styles.heroTitle}>{hub.averageRatingLabel === "New" ? "New community rating" : `${hub.averageRatingLabel} community rating`}</Text>
+        <Text style={styles.helper}>{hub.reviewCount} published review{hub.reviewCount === 1 ? "" : "s"} currently shape the public exhibition preview.</Text>
       </View>
 
-      <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>Your rating</Text>
-        <View style={styles.ratingRow}>
-          {[1, 2, 3, 4, 5].map((value) => (
-            <Pressable key={value} onPress={() => setRating(value)} style={[styles.ratingChip, rating === value && styles.ratingChipActive]}>
-              <Text style={[styles.ratingText, rating === value && styles.ratingTextActive]}>{value}</Text>
-            </Pressable>
-          ))}
-        </View>
-        <Text style={styles.label}>Short comment</Text>
-        <TextInput
-          value={comment}
-          onChangeText={setComment}
-          style={styles.input}
-          placeholder="What stood out once the exhibition actually unfolded in person?"
-          placeholderTextColor={palette.textMuted}
-          multiline
-        />
-        <Pressable style={styles.primaryButton} onPress={() => setSubmitted(true)}>
-          <Text style={styles.primaryButtonText}>Submit feedback</Text>
-        </Pressable>
-      </View>
-
-      {submitted ? (
-        <View style={styles.successCard}>
-          <Text style={styles.sectionTitle}>Feedback staged</Text>
-          <Text style={styles.helper}>Rating {rating}/5 saved with your comment preview. This is the state that will later trigger comment-gated stamp logic.</Text>
-        </View>
-      ) : null}
+      <ReviewComposerPanel
+        hub={hub}
+        rating={rating}
+        comment={comment}
+        setRating={setRating}
+        setComment={setComment}
+        isPending={saveReviewMutation.isPending}
+        isError={saveReviewMutation.isError}
+        error={saveReviewMutation.error}
+        onSave={handleSave}
+      />
 
       <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>Recent comments</Text>
-        {reviews.map((review) => (
-          <View key={review.id} style={styles.reviewCard}>
-            <View style={styles.badgeRow}>
-              <Text style={styles.reviewAuthor}>{review.author}</Text>
-              <Text style={styles.statusText}>{review.rating}/5 · {review.postedAt}</Text>
-            </View>
-            <Text style={styles.reviewMeta}>{review.roleLabel} · {review.highlight}</Text>
-            <Text style={styles.helper}>{review.body}</Text>
+        <Text style={styles.sectionTitle}>Publishing notes</Text>
+        {hub.guidelines.map((guideline) => (
+          <View key={guideline} style={styles.guidelineRow}>
+            <View style={styles.guidelineDot} />
+            <Text style={styles.helper}>{guideline}</Text>
           </View>
         ))}
       </View>
+
+      {hub.composer.status === "PUBLISHED" ? (
+        <View style={styles.successCard}>
+          <Text style={styles.sectionTitle}>Public review live</Text>
+          <Text style={styles.helper}>Your latest saved review is visible in the exhibition preview and can contribute to the community milestone stamp.</Text>
+        </View>
+      ) : null}
+
+      <RecentReviewsPanel reviews={hub.recentReviews} />
     </ScreenShell>
   );
 }
@@ -113,6 +332,12 @@ const styles = StyleSheet.create({
     borderColor: palette.border,
     padding: spacing.md,
     gap: spacing.sm
+  },
+  panelHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.sm,
   },
   sectionTitle: {
     color: palette.text,
@@ -152,6 +377,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700"
   },
+  metaText: {
+    color: palette.textMuted,
+    fontFamily: typography.body,
+    fontSize: 12,
+    lineHeight: 18,
+  },
   input: {
     backgroundColor: palette.white,
     borderRadius: radii.sm,
@@ -170,6 +401,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     alignItems: "center"
   },
+  primaryButtonDisabled: {
+    opacity: 0.45,
+  },
   primaryButtonText: {
     color: palette.white,
     fontFamily: typography.body,
@@ -183,6 +417,19 @@ const styles = StyleSheet.create({
     borderColor: palette.border,
     padding: spacing.md,
     gap: spacing.xs
+  },
+  guidelineRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    alignItems: "flex-start",
+  },
+  guidelineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: palette.accent,
+    marginTop: 6,
+    flexShrink: 0,
   },
   reviewCard: {
     backgroundColor: palette.muted,

@@ -1,43 +1,124 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { EmptyStateBanner } from "../components/EmptyStateBanner";
+import { ErrorRecoveryPanel } from "../components/ErrorRecoveryPanel";
 import { ScreenShell } from "../components/ScreenShell";
+import { StatusChip } from "../components/StatusChip";
+import { useOrganizerDashboard } from "../query/useOrganizerDashboard";
 import { palette, radii, spacing, typography } from "../theme/tokens";
-import type { OrganizerExhibition, OrganizerExhibitionStatus } from "../types/models";
+import type { OrganizerDashboardDto, OrganizerExhibitionCardDto, OrganizerKpiCardDto } from "../types/api";
+import type { ExhibitionStatus } from "../types/models";
 
 type OrganizerDashboardScreenProps = Readonly<{
-  exhibitions: OrganizerExhibition[];
   onCreateExhibition: () => void;
   onEditExhibition: (exhibitionId: string) => void;
   onOpenFormBuilder: (exhibitionId: string) => void;
   onOpenSubmissions: (exhibitionId: string) => void;
 }>;
 
-const statusOptions: Array<{ key: OrganizerExhibitionStatus | "all"; label: string }> = [
-  { key: "all", label: "All" },
-  { key: "published", label: "Published" },
-  { key: "review", label: "Review" },
-  { key: "draft", label: "Draft" }
+type DashboardFilter = ExhibitionStatus | "ALL";
+
+const statusOptions: Array<Readonly<{ key: DashboardFilter; label: string }>> = [
+  { key: "ALL", label: "All" },
+  { key: "PUBLISHED", label: "Published" },
+  { key: "REVIEW", label: "Review" },
+  { key: "DRAFT", label: "Draft" },
 ];
 
+function toKpiTone(tone: OrganizerKpiCardDto["tone"]): "neutral" | "warning" | "success" {
+  if (tone === "alert") {
+    return "warning";
+  }
+
+  if (tone === "success") {
+    return "success";
+  }
+
+  return "neutral";
+}
+
+function formatStatusLabel(status: OrganizerExhibitionCardDto["status"]) {
+  return status.toLowerCase();
+}
+
+function getHeroCopy(data: OrganizerDashboardDto) {
+  if (data.urgentQueueCount > 0) {
+    return "Queue work is active. Start with urgent submissions, then fan back out to form or publishing tasks.";
+  }
+
+  return "Dashboard is healthy. Use this window to refine briefs, field design, and publishing cadence before the next queue spike.";
+}
+
 export function OrganizerDashboardScreen({
-  exhibitions,
   onCreateExhibition,
   onEditExhibition,
   onOpenFormBuilder,
-  onOpenSubmissions
+  onOpenSubmissions,
 }: OrganizerDashboardScreenProps) {
-  const [selectedStatus, setSelectedStatus] = useState<OrganizerExhibitionStatus | "all">("all");
-  const visibleExhibitions = selectedStatus === "all" ? exhibitions : exhibitions.filter((item) => item.status === selectedStatus);
+  const [selectedStatus, setSelectedStatus] = useState<DashboardFilter>("ALL");
+  const dashboardQuery = useOrganizerDashboard(true);
+
+  const visibleExhibitions = useMemo(() => {
+    if (!dashboardQuery.data) {
+      return [];
+    }
+
+    if (selectedStatus === "ALL") {
+      return dashboardQuery.data.exhibitions;
+    }
+
+    return dashboardQuery.data.exhibitions.filter((item) => item.status === selectedStatus);
+  }, [dashboardQuery.data, selectedStatus]);
+
+  if (dashboardQuery.isLoading) {
+    return (
+      <ScreenShell title="Organizer Dashboard" subtitle="Loading queue, session, and exhibition aggregates from the command-center API.">
+        <StatusChip label="Loading dashboard" tone="neutral" />
+      </ScreenShell>
+    );
+  }
+
+  if (dashboardQuery.isError || !dashboardQuery.data) {
+    return (
+      <ScreenShell title="Organizer Dashboard" subtitle="The organizer aggregate surface could not be restored.">
+        <ErrorRecoveryPanel
+          description={dashboardQuery.error instanceof Error ? dashboardQuery.error.message : "Organizer dashboard could not be loaded."}
+          onRetry={() => dashboardQuery.refetch()}
+        />
+      </ScreenShell>
+    );
+  }
 
   return (
-    <ScreenShell>
+    <ScreenShell title="Organizer Dashboard" subtitle="Monitor queue health, session pressure, and exhibition shortcuts from the same workflow data used by the organizer pipeline.">
       <View style={styles.heroCard}>
-        <Text style={styles.kicker}>Today</Text>
-        <Text style={styles.heroTitle}>Keep the command center light enough for a semester demo, but complete enough to prove the full workflow.</Text>
+        <Text style={styles.kicker}>Command center</Text>
+        <Text style={styles.heroTitle}>{getHeroCopy(dashboardQuery.data)}</Text>
+        <Text style={styles.heroCopy}>{dashboardQuery.data.sessionLoadSummary}</Text>
+        <View style={styles.heroStatusRow}>
+          <StatusChip label={`${dashboardQuery.data.urgentQueueCount} urgent`} tone={dashboardQuery.data.urgentQueueCount > 0 ? "warning" : "success"} />
+          <StatusChip label={`${dashboardQuery.data.exhibitions.length} exhibitions`} tone="neutral" />
+        </View>
         <Pressable style={styles.primaryButton} onPress={onCreateExhibition}>
           <Text style={styles.primaryButtonText}>Create exhibition draft</Text>
         </Pressable>
+      </View>
+
+      <View style={styles.kpiGrid}>
+        {dashboardQuery.data.kpis.map((kpi) => (
+          <View key={kpi.label} style={styles.kpiCard}>
+            <Text style={styles.kpiValue}>{kpi.value}</Text>
+            <Text style={styles.kpiLabel}>{kpi.label}</Text>
+            <StatusChip label={kpi.tone ?? "neutral"} tone={toKpiTone(kpi.tone)} />
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.queueCard}>
+        <Text style={styles.sectionTitle}>Urgent queue</Text>
+        <Text style={styles.queueCount}>{dashboardQuery.data.urgentQueueCount}</Text>
+        <Text style={styles.heroCopy}>Pending or waitlisted items that will likely need organizer attention first.</Text>
       </View>
 
       <View style={styles.filterRow}>
@@ -52,26 +133,32 @@ export function OrganizerDashboardScreen({
         ))}
       </View>
 
+      {visibleExhibitions.length === 0 ? (
+        <EmptyStateBanner
+          title="No exhibitions in this filter"
+          description="Clear the current filter or create a new exhibition draft to reopen the organizer command center."
+          actionLabel="Create exhibition draft"
+          onAction={onCreateExhibition}
+        />
+      ) : null}
+
       {visibleExhibitions.map((exhibition) => (
-        <View key={exhibition.id} style={styles.card}>
-          <View style={[styles.accentBar, { backgroundColor: exhibition.accent }]} />
+        <View key={exhibition.exhibitionId} style={styles.card}>
           <View style={styles.badgeRow}>
-            <Text style={styles.typeBadge}>{exhibition.status}</Text>
-            <Text style={styles.statusText}>{exhibition.dateLabel}</Text>
+            <Text style={styles.typeBadge}>{formatStatusLabel(exhibition.status)}</Text>
+            <StatusChip label={`${exhibition.pendingCount} pending`} tone={exhibition.pendingCount > 0 ? "warning" : "neutral"} />
           </View>
           <Text style={styles.cardTitle}>{exhibition.title}</Text>
-          <Text style={styles.cardMeta}>{exhibition.venue} · {exhibition.district}</Text>
-          <Text style={styles.cardCopy}>{exhibition.summary}</Text>
-          <Text style={styles.cardMeta}>{exhibition.submissions} submissions · {exhibition.checkedIn} checked-in · {exhibition.fieldCount} form fields</Text>
-          <Text style={styles.cardMeta}>Next action: {exhibition.nextAction}</Text>
+          <Text style={styles.cardMeta}>{exhibition.venueTitle ?? "Venue pending"}</Text>
+          <Text style={styles.cardMeta}>{exhibition.checkedInCount} checked-in · {exhibition.nextAction ?? "No next action"}</Text>
           <View style={styles.actionRow}>
-            <Pressable style={styles.secondaryButton} onPress={() => onEditExhibition(exhibition.id)}>
+            <Pressable style={styles.secondaryButton} onPress={() => onEditExhibition(exhibition.exhibitionId)}>
               <Text style={styles.secondaryButtonText}>Edit brief</Text>
             </Pressable>
-            <Pressable style={styles.secondaryButton} onPress={() => onOpenFormBuilder(exhibition.id)}>
+            <Pressable style={styles.secondaryButton} onPress={() => onOpenFormBuilder(exhibition.exhibitionId)}>
               <Text style={styles.secondaryButtonText}>Field map</Text>
             </Pressable>
-            <Pressable style={styles.secondaryButton} onPress={() => onOpenSubmissions(exhibition.id)}>
+            <Pressable style={styles.secondaryButton} onPress={() => onOpenSubmissions(exhibition.exhibitionId)}>
               <Text style={styles.secondaryButtonText}>Submissions</Text>
             </Pressable>
           </View>
@@ -99,9 +186,20 @@ const styles = StyleSheet.create({
   heroTitle: {
     color: palette.text,
     fontFamily: typography.display,
-    fontSize: 30,
-    lineHeight: 36,
+    fontSize: 28,
+    lineHeight: 34,
     fontWeight: "700"
+  },
+  heroCopy: {
+    color: palette.textMuted,
+    fontFamily: typography.body,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  heroStatusRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
   },
   primaryButton: {
     alignSelf: "flex-start",
@@ -115,6 +213,59 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 14,
     fontWeight: "700"
+  },
+  kpiGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  kpiCard: {
+    flexBasis: "48%",
+    flexGrow: 1,
+    backgroundColor: palette.card,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: palette.border,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  kpiValue: {
+    color: palette.text,
+    fontFamily: typography.display,
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: "700",
+  },
+  kpiLabel: {
+    color: palette.textMuted,
+    fontFamily: typography.body,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  queueCard: {
+    backgroundColor: palette.card,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: palette.border,
+    padding: spacing.lg,
+    gap: spacing.xs,
+  },
+  sectionTitle: {
+    color: palette.text,
+    fontFamily: typography.body,
+    fontSize: 14,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  queueCount: {
+    color: palette.text,
+    fontFamily: typography.display,
+    fontSize: 38,
+    lineHeight: 42,
+    fontWeight: "700",
   },
   filterRow: {
     flexDirection: "row",
@@ -146,14 +297,6 @@ const styles = StyleSheet.create({
     borderColor: palette.border,
     padding: spacing.md,
     gap: spacing.xs,
-    overflow: "hidden"
-  },
-  accentBar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 6
   },
   badgeRow: {
     flexDirection: "row",
@@ -172,17 +315,11 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     textTransform: "uppercase"
   },
-  statusText: {
-    color: palette.textMuted,
-    fontFamily: typography.body,
-    fontSize: 12,
-    fontWeight: "700"
-  },
   cardTitle: {
     color: palette.text,
     fontFamily: typography.display,
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 24,
+    lineHeight: 30,
     fontWeight: "700"
   },
   cardMeta: {
@@ -190,12 +327,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 13,
     lineHeight: 18
-  },
-  cardCopy: {
-    color: palette.text,
-    fontFamily: typography.body,
-    fontSize: 14,
-    lineHeight: 20
   },
   actionRow: {
     flexDirection: "row",

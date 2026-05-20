@@ -6,6 +6,8 @@ import { EmptyStateBanner } from "../components/EmptyStateBanner";
 import { ScreenShell } from "../components/ScreenShell";
 import { StatusChip } from "../components/StatusChip";
 import { StickyActionBar } from "../components/StickyActionBar";
+import { OrganizerProfileSections } from "./profile/OrganizerProfileSections";
+import { VisitorProfileSections } from "./profile/VisitorProfileSections";
 import { palette, radii, spacing, typography } from "../theme/tokens";
 import type { UserProfile, UserRole } from "../types/models";
 
@@ -144,16 +146,8 @@ export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: Profile
         </View>
       </View>
 
-      {profile.stats.length > 0 ? (
-        <View style={styles.statRow}>
-          {profile.stats.map((stat) => (
-            <View key={stat.label} style={styles.statCard}>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
+      {role === "VISITOR" ? <VisitorProfileSections profile={profile} /> : null}
+      {role === "ORGANIZER" ? <OrganizerProfileSections profile={profile} /> : null}
 
       <StickyActionBar
         primaryLabel={`Switch to ${nextRoleLabel} workspace`}

@@ -1,25 +1,17 @@
+import { formatDistanceToNow, parseISO } from "date-fns";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { EmptyStateBanner } from "../components/EmptyStateBanner";
+import { ErrorRecoveryPanel } from "../components/ErrorRecoveryPanel";
 import { ScreenShell } from "../components/ScreenShell";
+import { StatusChip } from "../components/StatusChip";
+import { useStampVault } from "../query/useStampVault";
 import { palette, radii, spacing, typography } from "../theme/tokens";
-import type { Stamp, UserProfile } from "../types/models";
-
-type VaultGallery = Readonly<{
-  id: string;
-  title: string;
-  images?: string[];
-  logoImage?: string;
-}>;
-
-type VaultStamp = Stamp & Readonly<{
-  exhibitionId?: string;
-  vaultSection?: "CONFIRMED" | "UPCOMING" | "EXPIRED";
-}>;
+import type { StampCardDto, StampMilestoneDto } from "../types/api";
+import type { UserProfile } from "../types/models";
 
 type StampVaultScreenProps = Readonly<{
-  stamps: VaultStamp[];
-  galleries: VaultGallery[];
-  profile: UserProfile;
+  profile: UserProfile | null;
   onOpenGallery: (galleryId: string) => void;
 }>;
 
@@ -38,18 +30,86 @@ const sectionMeta: Record<"CONFIRMED" | "UPCOMING" | "EXPIRED", { label: string;
   }
 };
 
-export function StampVaultScreen({ stamps, galleries, profile, onOpenGallery }: StampVaultScreenProps) {
-  const galleryMap = new Map(galleries.map((gallery) => [gallery.id, gallery]));
-  const confirmedStamps = stamps.filter((stamp) => (stamp.vaultSection ?? "CONFIRMED") === "CONFIRMED");
-  const upcomingStamps = stamps.filter((stamp) => stamp.vaultSection === "UPCOMING");
-  const expiredStamps = stamps.filter((stamp) => stamp.vaultSection === "EXPIRED");
+function formatUnlockedAt(value?: string) {
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    return formatDistanceToNow(parseISO(value), { addSuffix: true });
+  } catch {
+    return value;
+  }
+}
+
+function LoadingStampVaultScreen({ membershipLabel }: Readonly<{ membershipLabel?: string }>) {
+  return (
+    <ScreenShell eyebrow="Visitor flow" title={membershipLabel ?? "Passport vault"} subtitle="Loading confirmed attendance, upcoming visits, and milestone progress.">
+      <StatusChip label="Loading vault" tone="neutral" />
+    </ScreenShell>
+  );
+}
+
+function StampVaultErrorScreen({ membershipLabel, description, onRetry }: Readonly<{ membershipLabel?: string; description: string; onRetry: () => void }>) {
+  return (
+    <ScreenShell eyebrow="Visitor flow" title={membershipLabel ?? "Passport vault"} subtitle="The visitor progress vault could not be restored.">
+      <ErrorRecoveryPanel description={description} onRetry={onRetry} />
+    </ScreenShell>
+  );
+}
+
+export function StampVaultScreen({ profile, onOpenGallery }: StampVaultScreenProps) {
+  const progressQuery = useStampVault(true);
+
+  if (progressQuery.isLoading && !progressQuery.data) {
+    return <LoadingStampVaultScreen membershipLabel={profile?.membershipLabel} />;
+  }
+
+  if (progressQuery.isError || !progressQuery.data) {
+    return (
+      <StampVaultErrorScreen
+        membershipLabel={profile?.membershipLabel}
+        description={progressQuery.error instanceof Error ? progressQuery.error.message : "Stamp vault query failed."}
+        onRetry={() => progressQuery.refetch()}
+      />
+    );
+  }
+
+  const progress = progressQuery.data;
 
   return (
     <ScreenShell
       eyebrow="Visitor flow"
-      title={profile.membershipLabel ?? "Passport tier"}
-      subtitle="Track confirmed visits, upcoming registrations, and expired signups in one clean vault view."
+      title={profile?.membershipLabel ?? "Passport tier"}
+      subtitle="Track confirmed attendance, queued visits, and milestone rewards from the same post-visit rules used by reviews and check-in."
     >
+      <View style={styles.introBlock}>
+        <Text style={styles.introTitle}>{progress.totalUnlocked} unlocked stamp{progress.totalUnlocked === 1 ? "" : "s"}</Text>
+        <Text style={styles.introText}>
+          {progress.nextMilestoneLabel
+            ? `Next milestone: ${progress.nextMilestoneLabel}.`
+            : "All current visitor milestones in this vault are unlocked."}
+        </Text>
+        <View style={styles.badgeRowWrap}>
+          <StatusChip label={`${progress.confirmedCount} confirmed`} tone={progress.confirmedCount > 0 ? "success" : "neutral"} />
+          <StatusChip label={`${progress.upcomingCount} upcoming`} tone={progress.upcomingCount > 0 ? "warning" : "neutral"} />
+          <StatusChip label={`${progress.expiredCount} expired`} tone={progress.expiredCount > 0 ? "danger" : "neutral"} />
+        </View>
+      </View>
+
+      <View style={styles.sectionBlock}>
+        <View style={styles.sectionHeader}>
+          <View style={[styles.sectionMarker, { backgroundColor: palette.text }]} />
+          <View style={styles.sectionHeaderText}>
+            <Text style={styles.sectionTitle}>Milestone track</Text>
+            <Text style={styles.sectionDescription}>See which attendance and review milestones are already unlocked and which one comes next.</Text>
+          </View>
+        </View>
+        <View style={styles.grid}>
+          {progress.lockedMilestones.map((milestone) => renderMilestoneCard(milestone))}
+        </View>
+      </View>
+
       <View style={styles.sectionBlock}>
         <View style={styles.sectionHeader}>
           <View style={[styles.sectionMarker, { backgroundColor: palette.accent }]} />
@@ -58,9 +118,11 @@ export function StampVaultScreen({ stamps, galleries, profile, onOpenGallery }: 
             <Text style={styles.sectionDescription}>{sectionMeta.CONFIRMED.description}</Text>
           </View>
         </View>
-        <View style={styles.grid}>
-          {confirmedStamps.map((stamp) => renderStampCard(stamp, galleryMap, onOpenGallery))}
-        </View>
+        {progress.confirmedStamps.length === 0 ? (
+          <EmptyStateBanner title="No confirmed stamps yet" description="Once an organizer checks you in, your attendance stamp lands here automatically." />
+        ) : (
+          <View style={styles.grid}>{progress.confirmedStamps.map((stamp) => renderStampCard(stamp, onOpenGallery))}</View>
+        )}
       </View>
 
       <View style={styles.sectionBlock}>
@@ -71,9 +133,11 @@ export function StampVaultScreen({ stamps, galleries, profile, onOpenGallery }: 
             <Text style={styles.sectionDescription}>{sectionMeta.UPCOMING.description}</Text>
           </View>
         </View>
-        <View style={styles.grid}>
-          {upcomingStamps.map((stamp) => renderStampCard(stamp, galleryMap, onOpenGallery))}
-        </View>
+        {progress.upcomingStamps.length === 0 ? (
+          <EmptyStateBanner title="No upcoming registrations" description="New confirmed or waitlisted registrations will surface here until the visit happens." />
+        ) : (
+          <View style={styles.grid}>{progress.upcomingStamps.map((stamp) => renderStampCard(stamp, onOpenGallery))}</View>
+        )}
       </View>
 
       <View style={styles.sectionBlock}>
@@ -84,28 +148,44 @@ export function StampVaultScreen({ stamps, galleries, profile, onOpenGallery }: 
             <Text style={styles.sectionDescription}>{sectionMeta.EXPIRED.description}</Text>
           </View>
         </View>
-        <View style={styles.grid}>
-          {expiredStamps.map((stamp) => renderStampCard(stamp, galleryMap, onOpenGallery))}
+        {progress.expiredStamps.length === 0 ? (
+          <EmptyStateBanner title="No expired registrations" description="Missed or cancelled registrations will be archived here when they fall out of the active journey." />
+        ) : (
+          <View style={styles.grid}>{progress.expiredStamps.map((stamp) => renderStampCard(stamp, onOpenGallery))}</View>
+        )}
+      </View>
+
+      <View style={styles.sectionBlock}>
+        <View style={styles.sectionHeader}>
+          <View style={[styles.sectionMarker, { backgroundColor: palette.background }]} />
+          <View style={styles.sectionHeaderText}>
+            <Text style={styles.sectionTitle}>Recent unlocks</Text>
+            <Text style={styles.sectionDescription}>The latest confirmed rewards stay visible so the post-visit progression feels cumulative.</Text>
+          </View>
         </View>
+        {progress.history.length === 0 ? (
+          <EmptyStateBanner title="No unlock history yet" description="As soon as your first verified visit lands, the vault keeps a running history here." />
+        ) : (
+          <View style={styles.grid}>{progress.history.map((stamp) => renderStampCard(stamp, onOpenGallery))}</View>
+        )}
       </View>
     </ScreenShell>
   );
 }
 
 function renderStampCard(
-  stamp: VaultStamp,
-  galleryMap: Map<string, VaultGallery>,
+  stamp: StampCardDto,
   onOpenGallery: (galleryId: string) => void
 ) {
   const galleryId = stamp.exhibitionId;
-  const gallery = galleryId ? galleryMap.get(galleryId) : undefined;
-  const logoText = gallery?.title
+  const accent = stamp.accent ?? palette.accent;
+  const logoText = stamp.title
     .split(" ")
     .filter(Boolean)
     .map((word) => word[0])
     .slice(0, 2)
     .join("")
-    .toUpperCase() || stamp.title.slice(0, 2).toUpperCase();
+    .toUpperCase();
 
   let statusText = "Registered, expired";
 
@@ -119,10 +199,11 @@ function renderStampCard(
     <Pressable
       key={stamp.id}
       onPress={() => galleryId ? onOpenGallery(galleryId) : undefined}
+      disabled={!galleryId}
       style={({ pressed }) => [styles.card, stamp.vaultSection === "EXPIRED" && styles.expiredCard, pressed && styles.cardPressed]}
     >
-      <View style={[styles.stampAccent, { backgroundColor: stamp.accent }]} />
-      <View style={[styles.logoBox, { backgroundColor: stamp.accent }]}>
+      <View style={[styles.stampAccent, { backgroundColor: accent }]} />
+      <View style={[styles.logoBox, { backgroundColor: accent }]}>
         <Text style={styles.logoText}>{logoText}</Text>
       </View>
       <View style={styles.cardHeaderRow}>
@@ -133,8 +214,27 @@ function renderStampCard(
       </View>
       <Text style={styles.cardMeta}>{stamp.milestone}</Text>
       <Text style={styles.cardMeta}>{stamp.note}</Text>
-      {gallery?.title ? <Text style={styles.galleryTitle}>{gallery.title}</Text> : null}
+      {formatUnlockedAt(stamp.unlockedAt) ? <Text style={styles.galleryTitle}>Updated {formatUnlockedAt(stamp.unlockedAt)}</Text> : null}
     </Pressable>
+  );
+}
+
+function renderMilestoneCard(milestone: StampMilestoneDto) {
+  return (
+    <View key={milestone.id} style={[styles.card, !milestone.unlocked && styles.expiredCard]}>
+      <View style={[styles.stampAccent, { backgroundColor: milestone.accent ?? palette.accent }]} />
+      <View style={[styles.logoBox, { backgroundColor: milestone.accent ?? palette.accent }]}>
+        <Text style={styles.logoText}>{milestone.title.slice(0, 2).toUpperCase()}</Text>
+      </View>
+      <View style={styles.cardHeaderRow}>
+        <Text style={styles.cardTitle}>{milestone.title}</Text>
+        <Text style={[styles.cardStatus, milestone.unlocked ? styles.cardStatusConfirmed : styles.cardStatusUpcoming]}>
+          {milestone.unlocked ? "Unlocked" : "Next up"}
+        </Text>
+      </View>
+      <Text style={styles.cardMeta}>{milestone.milestone}</Text>
+      <Text style={styles.cardMeta}>{milestone.note}</Text>
+    </View>
   );
 }
 
@@ -157,6 +257,11 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 14,
     lineHeight: 20
+  },
+  badgeRowWrap: {
+    flexDirection: "row",
+    gap: spacing.xs,
+    flexWrap: "wrap",
   },
   sectionBlock: {
     gap: spacing.xs

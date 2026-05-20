@@ -6,8 +6,10 @@ type StickyActionBarProps = Readonly<{
   primaryLabel: string;
   onPrimaryPress: () => void;
   primaryDisabled?: boolean;
+  primaryTestID?: string;
   secondaryLabel?: string;
   onSecondaryPress?: () => void;
+  secondaryTestID?: string;
   helperText?: string;
 }>;
 
@@ -15,8 +17,10 @@ export function StickyActionBar({
   primaryLabel,
   onPrimaryPress,
   primaryDisabled,
+  primaryTestID,
   secondaryLabel,
   onSecondaryPress,
+  secondaryTestID,
   helperText,
 }: StickyActionBarProps) {
   return (
@@ -27,11 +31,12 @@ export function StickyActionBar({
           style={[styles.primaryButton, primaryDisabled && styles.primaryButtonDisabled]}
           onPress={onPrimaryPress}
           disabled={primaryDisabled}
+          testID={primaryTestID}
         >
           <Text style={styles.primaryText}>{primaryLabel}</Text>
         </Pressable>
         {secondaryLabel && onSecondaryPress ? (
-          <Pressable style={styles.secondaryButton} onPress={onSecondaryPress}>
+          <Pressable style={styles.secondaryButton} onPress={onSecondaryPress} testID={secondaryTestID}>
             <Text style={styles.secondaryText}>{secondaryLabel}</Text>
           </Pressable>
         ) : null}

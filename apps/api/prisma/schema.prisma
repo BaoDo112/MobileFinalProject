@@ -41,6 +41,7 @@ enum RegistrationStatus {
 
 enum ReviewStatus {
   PUBLISHED
+  PENDING
   HIDDEN
   FLAGGED
 }
@@ -48,6 +49,12 @@ enum ReviewStatus {
 enum StampSource {
   ATTENDANCE
   MILESTONE
+}
+
+enum StampVaultSection {
+  CONFIRMED
+  UPCOMING
+  EXPIRED
 }
 
 enum FieldType {
@@ -294,6 +301,7 @@ model Stamp {
   exhibitionId   String
   registrationId String?
   source         StampSource
+  vaultSection   StampVaultSection @default(CONFIRMED)
   title          String
   milestone      String?
   note           String?

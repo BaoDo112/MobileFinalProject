@@ -1,41 +1,16 @@
 import { Injectable } from "@nestjs/common";
 
-import type { GallerySummary } from "../common/contracts";
-
-const gallerySeed: GallerySummary[] = [
-  {
-    id: "g-01",
-    title: "Lightwave: Kinetic Gallery",
-    galleryType: "Technology",
-    district: "District 1",
-    dateLabel: "Apr 03 - Apr 16, 2026",
-    timeLabel: "09:00 - 21:00",
-    organizer: "Arthera Studio",
-    status: "PRESENT"
-  },
-  {
-    id: "g-02",
-    title: "Roots in Motion",
-    galleryType: "Art",
-    district: "District 3",
-    dateLabel: "May 12 - May 28, 2026",
-    timeLabel: "10:00 - 19:00",
-    organizer: "Cedar House",
-    status: "FUTURE"
-  }
-];
+import { ExhibitionsService } from "../exhibitions/exhibitions.service";
 
 @Injectable()
 export class GalleriesService {
-  list(status?: string) {
-    if (!status) {
-      return gallerySeed;
-    }
+  constructor(private readonly exhibitionsService: ExhibitionsService) {}
 
-    return gallerySeed.filter((gallery) => gallery.status === status.toUpperCase());
+  list(status?: string) {
+    return this.exhibitionsService.listLegacyGalleries(status?.toUpperCase() as "PAST" | "PRESENT" | "FUTURE" | undefined);
   }
 
   detail(id: string) {
-    return gallerySeed.find((gallery) => gallery.id === id) ?? null;
+    return this.exhibitionsService.getLegacyGallery(id);
   }
 }

@@ -6,11 +6,11 @@
 - ✅ **v1.1 Detailed Planning and Wireframe Reference** - Completed 2026-05-04 ([archive](milestones/v1.1-ROADMAP.md))
 - ✅ **v1.2 Full Mobile UI Implementation and Validation** - Completed 2026-05-04 ([archive](milestones/v1.2-ROADMAP.md))
 - ✅ **v1.3 Full High-Fidelity Pencil UI Lock** - Completed 2026-05-12 ([archive](milestones/v1.3-ROADMAP.md))
-- ⏳ **v1.4 End-to-End Contract Alignment and Delivery** - Planned 2026-05-12
+- ✅ **v1.4 End-to-End Contract Alignment and Delivery** - Completed 2026-05-20
 
 ## Phases
 
-### ⏳ v1.4 End-to-End Contract Alignment and Delivery
+### ✅ v1.4 End-to-End Contract Alignment and Delivery
 
 **Milestone Goal:** Turn the locked v1.5 Pencil contract into executable Prisma, Nest, and Expo work for all 13 screens without reopening screen planning.
 
@@ -25,9 +25,9 @@
 - Explicitly deferred: Axios, RTK Query, BullMQ/Redis, push delivery, and full cloud upload infrastructure.
 
 - [x] **Phase 1: Domain Schema, Auth, and Shared Contracts** - Replace the MVP data model and auth stubs with the V2 workflow graph, typed contracts, and shared mobile primitives.
-- [ ] **Phase 2: Visitor Discovery, Registration, and Profile** - Deliver the read and reservation flows for Discover, Exhibition Detail, Event Registration, and Visitor Profile against real backend contracts.
-- [ ] **Phase 3: Organizer Publication and Queue Operations** - Deliver the Dashboard, Exhibition Editor, Form Builder, Submission Pipeline, Submission Review, and Organizer Profile flows against the new workflow model.
-- [ ] **Phase 4: Review, Stamp, and End-to-End Hardening** - Deliver Review Hub, Stamp Vault, and the cross-flow hardening needed to verify all 13 screens end-to-end.
+- [x] **Phase 2: Visitor Discovery, Registration, and Profile** - Deliver the read and reservation flows for Discover, Exhibition Detail, Event Registration, and Visitor Profile against real backend contracts.
+- [x] **Phase 3: Organizer Publication and Queue Operations** - Deliver the Dashboard, Exhibition Editor, Form Builder, Submission Pipeline, Submission Review, and Organizer Profile flows against the new workflow model.
+- [x] **Phase 4: Review, Stamp, and End-to-End Hardening** - Deliver Review Hub, Stamp Vault, and the cross-flow hardening needed to verify all 13 screens end-to-end.
 
 ## Phase Details
 
@@ -60,8 +60,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: Deliver the Discover and Exhibition Detail read path with real filters, availability, and venue data.
-- [ ] 02-02: Deliver Event Registration and Visitor Profile against real session, registration, and preference contracts.
+- [x] 02-01: Deliver the Discover and Exhibition Detail read path with real filters, availability, and venue data.
+- [x] 02-02: Deliver Event Registration and Visitor Profile against real session, registration, and preference contracts.
 
 ### Phase 3: Organizer Publication and Queue Operations
 **Goal**: Deliver the organizer authoring and operational queue path from dashboard to decision handling.
@@ -76,9 +76,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: Deliver dashboard aggregates and organizer profile settings/notifications.
-- [ ] 03-02: Deliver the Exhibition Editor and Form Builder authoring stack.
-- [ ] 03-03: Deliver Submission Pipeline and Submission Review with decision and attendance actions.
+- [x] 03-01: Deliver dashboard aggregates and organizer profile settings/notifications.
+- [x] 03-02: Deliver the Exhibition Editor and Form Builder authoring stack.
+- [x] 03-03: Deliver Submission Pipeline and Submission Review with decision and attendance actions.
 
 ### Phase 4: Review, Stamp, and End-to-End Hardening
 **Goal**: Finish the post-attendance loop and harden the entire app so all locked states are implementable and verifiable.
@@ -93,14 +93,14 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Deliver Review Hub and Stamp Vault from attendance-gated review and stamp services.
-- [ ] 04-02: Remove remaining mock-only paths and add end-to-end smoke validation for all 13 screens.
+- [x] 04-01: Deliver Review Hub and Stamp Vault from attendance-gated review and stamp services.
+- [x] 04-02: Remove remaining mock-only paths and add end-to-end smoke validation for all 13 screens.
 
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Domain Schema, Auth, and Shared Contracts | 2/2 | Completed | 2026-05-18 |
-| 2. Visitor Discovery, Registration, and Profile | 0/2 | Planned | |
-| 3. Organizer Publication and Queue Operations | 0/3 | Planned | |
-| 4. Review, Stamp, and End-to-End Hardening | 0/2 | Planned | |
+| 2. Visitor Discovery, Registration, and Profile | 2/2 | Completed | 2026-05-20 |
+| 3. Organizer Publication and Queue Operations | 3/3 | Completed | 2026-05-20 |
+| 4. Review, Stamp, and End-to-End Hardening | 2/2 | Completed | 2026-05-20 |

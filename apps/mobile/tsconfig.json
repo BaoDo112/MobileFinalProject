@@ -10,7 +10,9 @@
     "skipLibCheck": true,
     "types": [
       "react",
-      "react-native"
+      "react-native",
+      "jest",
+      "@testing-library/jest-native"
     ]
   },
   "include": [

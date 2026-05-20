@@ -66,18 +66,7 @@ export class AuthService {
   private readonly sessionsByToken = new Map<string, SessionRecord>();
 
   constructor(private readonly jwtService: JwtService) {
-    this.seedDemoAccount({
-      email: "visitor@arthera.local",
-      password: "visitor123",
-      role: "VISITOR",
-      name: "Arthera Visitor"
-    });
-    this.seedDemoAccount({
-      email: "organizer@arthera.local",
-      password: "organizer123",
-      role: "ORGANIZER",
-      name: "Arthera Organizer"
-    });
+    this.seedDemoAccountsFromEnv();
   }
 
   async registerLocal(input: RegisterInput): Promise<AuthSessionEnvelope> {
@@ -182,6 +171,28 @@ export class AuthService {
 
     this.preferencesByUserId.set(session.userId, next);
     return this.toNotificationSettings(next);
+  }
+
+  private seedDemoAccountsFromEnv() {
+    const visitorPassword = process.env.ARTHERA_DEMO_VISITOR_PASSWORD?.trim();
+    if (visitorPassword) {
+      this.seedDemoAccount({
+        email: "visitor@arthera.local",
+        password: visitorPassword,
+        role: "VISITOR",
+        name: "Arthera Visitor"
+      });
+    }
+
+    const organizerPassword = process.env.ARTHERA_DEMO_ORGANIZER_PASSWORD?.trim();
+    if (organizerPassword) {
+      this.seedDemoAccount({
+        email: "organizer@arthera.local",
+        password: organizerPassword,
+        role: "ORGANIZER",
+        name: "Arthera Organizer"
+      });
+    }
   }
 
   private seedDemoAccount(input: RegisterInput) {

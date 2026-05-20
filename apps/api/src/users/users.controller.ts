@@ -11,4 +11,9 @@ export class UsersController {
   me(@Headers("authorization") authorization?: string) {
     return this.usersService.getCurrentUser(getBearerToken(authorization));
   }
+
+  @Get("me/visitor-profile")
+  visitorProfile(@Headers("authorization") authorization?: string) {
+    return this.usersService.getVisitorWorkspace(getBearerToken(authorization));
+  }
 }

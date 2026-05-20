@@ -1,5 +1,8 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Post, Query } from "@nestjs/common";
 
+import { AuthService } from "../auth/auth.service";
+import { getBearerToken } from "../common/auth-header";
+import { RegistrationsService } from "../registrations/registrations.service";
 import { StampsService } from "./stamps.service";
 
 interface IssueStampRequest {
@@ -10,7 +13,11 @@ interface IssueStampRequest {
 
 @Controller("stamps")
 export class StampsController {
-  constructor(private readonly stampsService: StampsService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly registrationsService: RegistrationsService,
+    private readonly stampsService: StampsService,
+  ) {}
 
   @Post("issue")
   issue(@Body() payload: IssueStampRequest) {
@@ -20,5 +27,11 @@ export class StampsController {
   @Get()
   list(@Query("ownerId") ownerId: string) {
     return this.stampsService.list(ownerId);
+  }
+
+  @Get("me/progress")
+  async progress(@Headers("authorization") authorization?: string) {
+    const session = await this.authService.getSessionEnvelope(getBearerToken(authorization));
+    return this.stampsService.buildProgress(session.user.id, this.registrationsService.listVisitorVisitsByUserId(session.user.id));
   }
 }

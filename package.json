@@ -4,11 +4,27 @@
   "private": true,
   "packageManager": "pnpm@10.10.0",
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
+    "start": "pnpm dev",
+    "dev": "concurrently -n api,mobile -c cyan,magenta \"pnpm dev:api\" \"pnpm dev:mobile\"",
+    "dev:stack": "pnpm dev",
+    "dev:go": "concurrently -n api,mobile -c cyan,magenta \"pnpm dev:api\" \"pnpm dev:mobile:go\"",
     "dev:mobile": "pnpm --filter @arthera/mobile dev",
+    "dev:mobile:go": "pnpm --filter @arthera/mobile dev:go",
     "dev:api": "pnpm --filter @arthera/api dev",
-    "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "test": "pnpm -r test"
+    "build:api": "pnpm --filter @arthera/api build",
+    "build:mobile": "pnpm --filter @arthera/mobile build",
+    "build": "pnpm -r --stream build",
+    "lint:api": "pnpm --filter @arthera/api lint",
+    "lint:mobile": "pnpm --filter @arthera/mobile lint",
+    "lint": "pnpm -r --stream lint",
+    "test:api": "pnpm --filter @arthera/api test",
+    "test:mobile": "pnpm --filter @arthera/mobile test",
+    "test:smoke": "pnpm --filter @arthera/api test:smoke && pnpm --filter @arthera/mobile test:smoke",
+    "test": "pnpm -r --stream test",
+    "test:unit": "pnpm --filter @arthera/api test:unit && pnpm --filter @arthera/mobile test:unit",
+    "test:integration": "pnpm --filter @arthera/api test:integration && pnpm --filter @arthera/mobile test:integration"
+  },
+  "devDependencies": {
+    "concurrently": "9.2.1"
   }
 }

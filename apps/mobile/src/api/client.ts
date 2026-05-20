@@ -67,6 +67,13 @@ export const apiClient = {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   },
+  put<T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">) {
+    return request<T>(path, {
+      ...options,
+      method: "PUT",
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  },
   patch<T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">) {
     return request<T>(path, {
       ...options,

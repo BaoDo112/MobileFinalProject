@@ -2,22 +2,25 @@ import { Ionicons } from "@expo/vector-icons";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useCallback, useState } from "react";
 
+import { ErrorRecoveryPanel } from "../components/ErrorRecoveryPanel";
+import { StatusChip } from "../components/StatusChip";
+import { useDiscover } from "../query/useDiscover";
 import { palette, radii, spacing, typography } from "../theme/tokens";
-import type { Gallery } from "../types/models";
+import type { ExhibitionSummaryDto } from "../types/api";
 
 // Map Platform Specifics
 import MapView, { Marker } from "./MapComponent";
 
 export function DiscoverMapScreen({
-  galleries,
   onOpenGallery
 }: Readonly<{
-  galleries: Gallery[];
   onOpenGallery: (id: string) => void;
 }>) {
-  const [selectedGallery, setSelectedGallery] = useState<Gallery | null>(null);
+  const discoverQuery = useDiscover();
+  const galleries = discoverQuery.data ?? [];
+  const [selectedGallery, setSelectedGallery] = useState<ExhibitionSummaryDto | null>(null);
 
-  const handleMarkerPress = useCallback((gallery: Gallery) => {
+  const handleMarkerPress = useCallback((gallery: ExhibitionSummaryDto) => {
     setSelectedGallery(gallery);
   }, []);
 
@@ -35,12 +38,31 @@ export function DiscoverMapScreen({
     );
   }
 
-  // Simplified initial region centering around the first gallery if exists
+  if (discoverQuery.isLoading && !discoverQuery.data) {
+    return (
+      <View style={styles.webFallbackContainer}>
+        <StatusChip label="Loading map exhibitions" tone="neutral" />
+      </View>
+    );
+  }
+
+  if (discoverQuery.isError && !discoverQuery.data) {
+    return (
+      <View style={styles.webFallbackContainer}>
+        <ErrorRecoveryPanel
+          title="Map data needs another try"
+          description={discoverQuery.error instanceof Error ? discoverQuery.error.message : "Map discover query failed."}
+          onRetry={() => discoverQuery.refetch()}
+        />
+      </View>
+    );
+  }
+
   const initialRegion = galleries.length > 0 ? {
-    latitude: 37.7749, // Mock default
-    longitude: -122.4194,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
+    latitude: 10.776889,
+    longitude: 106.700806,
+    latitudeDelta: 0.08,
+    longitudeDelta: 0.06,
   } : undefined;
 
   return (
@@ -51,16 +73,15 @@ export function DiscoverMapScreen({
         onPress={clearSelection}
       >
         {galleries.map((gallery, index) => {
-          // Just randomizing some coordinates around the initial region for visualization
           const lat = initialRegion ? initialRegion.latitude + (index * 0.01) - 0.005 : 0;
           const lng = initialRegion ? initialRegion.longitude + (index * 0.01) - 0.005 : 0;
           
           const isSelected = selectedGallery?.id === gallery.id;
           let markerStyle: typeof styles.markerBodyPast | typeof styles.markerBodyLive | typeof styles.markerBodyUpcoming = styles.markerBodyPast;
 
-          if (gallery.status === "present") {
+          if (gallery.timelineStatus === "PRESENT") {
             markerStyle = styles.markerBodyLive;
-          } else if (gallery.status === "future") {
+          } else if (gallery.timelineStatus === "FUTURE") {
             markerStyle = styles.markerBodyUpcoming;
           }
           
@@ -90,7 +111,7 @@ export function DiscoverMapScreen({
               </View>
               <View style={styles.cardMeta}>
                 <Text style={styles.cardTitle} numberOfLines={1}>{selectedGallery.title}</Text>
-                <Text style={styles.cardSub} numberOfLines={1}>Open until 9:00 PM • {((Math.random() * 5) + 0.1).toFixed(1)}km</Text>
+                  <Text style={styles.cardSub} numberOfLines={1}>{selectedGallery.dateLabel} • {selectedGallery.district}</Text>
               </View>
             </View>
 

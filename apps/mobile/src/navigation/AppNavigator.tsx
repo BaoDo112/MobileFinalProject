@@ -11,18 +11,6 @@ import { authApi } from "../api/auth";
 import { ErrorRecoveryPanel } from "../components/ErrorRecoveryPanel";
 import { ScreenShell } from "../components/ScreenShell";
 import { StatusChip } from "../components/StatusChip";
-import {
-  exhibitionFormsById,
-  exhibitionSubmissionsById,
-  galleries,
-  galleryReviews,
-  organizerExhibitions,
-  organizerProfile,
-  passportStamps,
-  registrationFormsByGallery,
-  visitSlotsByGallery,
-  visitorProfile,
-} from "../data/mockData";
 import { DiscoverMapScreen } from "../screens/DiscoverMapScreen";
 import { EventRegistrationScreen } from "../screens/EventRegistrationScreen";
 import { FormBuilderScreen } from "../screens/FormBuilderScreen";
@@ -278,7 +266,7 @@ function VisitorTabShell({
           tabBarIcon: renderGalleryTabIcon,
         }}
       >
-        {() => <GalleryHomeScreen galleries={galleries} onOpenGallery={onOpenGallery} />}
+        {() => <GalleryHomeScreen onOpenGallery={onOpenGallery} />}
       </VisitorTabs.Screen>
       <VisitorTabs.Screen
         name="Discover"
@@ -287,7 +275,7 @@ function VisitorTabShell({
           tabBarIcon: renderDiscoverTabIcon,
         }}
       >
-        {() => <DiscoverMapScreen galleries={galleries} onOpenGallery={onOpenGallery} />}
+        {() => <DiscoverMapScreen onOpenGallery={onOpenGallery} />}
       </VisitorTabs.Screen>
       <VisitorTabs.Screen
         name="Vault"
@@ -296,7 +284,7 @@ function VisitorTabShell({
           tabBarIcon: renderVaultTabIcon,
         }}
       >
-        {() => <StampVaultScreen stamps={passportStamps} galleries={galleries} profile={profile ?? visitorProfile} onOpenGallery={onOpenGallery} />}
+        {() => <StampVaultScreen profile={profile} onOpenGallery={onOpenGallery} />}
       </VisitorTabs.Screen>
       <VisitorTabs.Screen
         name="Profile"
@@ -333,7 +321,6 @@ function OrganizerTabShell({
       <OrganizerTabs.Screen name="Dashboard" options={{ title: "Dashboard" }}>
         {() => (
           <OrganizerDashboardScreen
-            exhibitions={organizerExhibitions}
             onCreateExhibition={onCreateExhibition}
             onEditExhibition={onEditExhibition}
             onOpenFormBuilder={onOpenFormBuilder}
@@ -343,11 +330,7 @@ function OrganizerTabShell({
       </OrganizerTabs.Screen>
       <OrganizerTabs.Screen name="Pipeline" options={{ title: "Pipeline" }}>
         {() => (
-          <SubmissionPipelineScreen
-            exhibitions={organizerExhibitions}
-            submissionsByExhibition={exhibitionSubmissionsById}
-            onOpenSubmissions={onOpenSubmissions}
-          />
+          <SubmissionPipelineScreen onOpenSubmissions={onOpenSubmissions} />
         )}
       </OrganizerTabs.Screen>
       <OrganizerTabs.Screen name="Profile" options={{ title: "Profile" }}>
@@ -386,16 +369,13 @@ export function AppNavigator() {
       void setSessionEnvelope(sessionQuery.data);
     }
   }, [sessionQuery.data, setSessionEnvelope]);
-
-  const galleryMap = useMemo(() => new Map(galleries.map((gallery) => [gallery.id, gallery])), []);
-  const exhibitionMap = useMemo(() => new Map(organizerExhibitions.map((exhibition) => [exhibition.id, exhibition])), []);
   const visitorProfileView = useMemo(
-    () => (token ? toVisitorProfileView(user, visitorBootstrap) : visitorProfile),
-    [token, user, visitorBootstrap]
+    () => toVisitorProfileView(user, visitorBootstrap),
+    [user, visitorBootstrap]
   );
   const organizerProfileView = useMemo(
-    () => (token ? toOrganizerProfileView(user, organizerBootstrap) : organizerProfile),
-    [token, user, organizerBootstrap]
+    () => toOrganizerProfileView(user, organizerBootstrap),
+    [user, organizerBootstrap]
   );
 
   if (!hasHydrated) {
@@ -495,8 +475,7 @@ export function AppNavigator() {
             <RootStack.Screen name="GalleryDetail" options={{ title: "Exhibition Details", headerBackTitle: "Back" }}>
               {({ route, navigation }) => (
                 <GalleryDetailScreen
-                  gallery={galleryMap.get(route.params.galleryId)}
-                  reviews={galleryReviews[route.params.galleryId] ?? []}
+                  galleryId={route.params.galleryId}
                   onOpenRegistration={() => navigation.navigate("EventRegistration", { galleryId: route.params.galleryId })}
                   onOpenReview={() => navigation.navigate("ReviewHub", { galleryId: route.params.galleryId })}
                 />
@@ -504,55 +483,33 @@ export function AppNavigator() {
             </RootStack.Screen>
 
             <RootStack.Screen name="EventRegistration" options={{ title: "Reserve Visit", headerBackTitle: "Back" }}>
-              {({ route }) => (
-                <EventRegistrationScreen
-                  gallery={galleryMap.get(route.params.galleryId)}
-                  fields={registrationFormsByGallery[route.params.galleryId] ?? []}
-                  slots={visitSlotsByGallery[route.params.galleryId] ?? []}
-                />
-              )}
+              {({ route }) => <EventRegistrationScreen exhibitionId={route.params.galleryId} />}
             </RootStack.Screen>
 
             <RootStack.Screen name="ReviewHub" options={{ title: "Review & Comment", headerBackTitle: "Back" }}>
-              {({ route }) => (
-                <ReviewHubScreen gallery={galleryMap.get(route.params.galleryId)} reviews={galleryReviews[route.params.galleryId] ?? []} />
-              )}
+              {({ route }) => <ReviewHubScreen exhibitionId={route.params.galleryId} />}
             </RootStack.Screen>
 
             <RootStack.Screen name="ExhibitionEditor" options={{ title: "Exhibition Studio", headerBackTitle: "Back" }}>
               {({ route, navigation }) => {
                 const exhibitionId = route.params.exhibitionId;
-                const exhibition = exhibitionId ? exhibitionMap.get(exhibitionId) : undefined;
 
                 return (
                   <OrganizerToolsScreen
                     key={exhibitionId ?? "new"}
-                    exhibition={exhibition}
-                    formFields={exhibitionId ? exhibitionFormsById[exhibitionId] ?? [] : []}
-                    onOpenFormBuilder={exhibitionId ? () => navigation.navigate("FormBuilder", { exhibitionId }) : undefined}
+                    exhibitionId={exhibitionId}
+                    onOpenFormBuilder={(nextExhibitionId) => navigation.navigate("FormBuilder", { exhibitionId: nextExhibitionId })}
                   />
                 );
               }}
             </RootStack.Screen>
 
             <RootStack.Screen name="FormBuilder" options={{ title: "Form Builder", headerBackTitle: "Back" }}>
-              {({ route }) => (
-                <FormBuilderScreen
-                  key={route.params.exhibitionId}
-                  exhibition={exhibitionMap.get(route.params.exhibitionId)}
-                  initialFields={exhibitionFormsById[route.params.exhibitionId] ?? []}
-                />
-              )}
+              {({ route }) => <FormBuilderScreen key={route.params.exhibitionId} exhibitionId={route.params.exhibitionId} />}
             </RootStack.Screen>
 
             <RootStack.Screen name="SubmissionReview" options={{ title: "Submission Review", headerBackTitle: "Back" }}>
-              {({ route }) => (
-                <SubmissionReviewScreen
-                  key={route.params.exhibitionId}
-                  exhibition={exhibitionMap.get(route.params.exhibitionId)}
-                  submissions={exhibitionSubmissionsById[route.params.exhibitionId] ?? []}
-                />
-              )}
+              {({ route }) => <SubmissionReviewScreen key={route.params.exhibitionId} exhibitionId={route.params.exhibitionId} />}
             </RootStack.Screen>
           </>
         ) : null}

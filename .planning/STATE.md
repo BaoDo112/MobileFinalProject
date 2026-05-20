@@ -1,9 +1,9 @@
 ---
 milestone: v1.4
-phase: 2
-plan: 1
-status: in_progress
-updated: 2026-05-18
+phase: 4
+plan: 2
+status: complete
+updated: 2026-05-20
 ---
 
 # Project State
@@ -13,16 +13,16 @@ updated: 2026-05-18
 See: .planning/PROJECT.md (updated 2026-05-18)
 
 **Core value:** A single mobile experience where visitors discover and collect gallery moments, while organizers launch exhibitions with minimal friction.
-**Current focus:** execute the v1.4 implementation milestone from the locked v1.5 contract without reopening screen planning
+**Current focus:** v1.4 complete and fully validated; next work should start from a new milestone or follow-up roadmap decision
 
 ## Current Position
 
-Phase: 2 of 4 (Visitor Discovery, Registration, and Profile)
-Plan: 1 of 2 in current phase
-Status: Phase 1 complete, Phase 2 execution opened
-Last activity: 2026-05-18 - Completed auth/workspace bootstrap and shared mobile primitives for 01-02, then advanced to 02-01
+Phase: 4 of 4 (Review, Stamp, and End-to-End Hardening)
+Plan: 2 of 2 in current phase
+Status: All v1.4 phases and plans are complete
+Last activity: 2026-05-20 - Completed 04-02 final hardening, smoke validation, and milestone closeout
 
-Progress: [██░░░░░░░░] 22% implementation started
+Progress: [██████████] 100% milestone complete
 
 ## Milestone Target Outputs
 
@@ -33,8 +33,8 @@ Progress: [██░░░░░░░░] 22% implementation started
 ## Planning Metrics
 
 - Total plans in v1.4: 9
-- Plans completed: 2
-- Remaining blockers: none in planning; execution starts with schema/auth foundation
+- Plans completed: 9
+- Remaining blockers: none
 
 ## Accumulated Context
 
@@ -45,23 +45,21 @@ Progress: [██░░░░░░░░] 22% implementation started
 - Use the v1.5 production boards as implementation authority for the next build milestone.
 - Keep tabs only on the six root shells; task flows stay on stack screens with sticky actions where required.
 - Plan every screen with explicit DB, Nest module, and Expo ownership so implementation does not need another roadmap rewrite.
+- Keep review visibility deterministic in v1.4 by auto-publishing clean content and marking trigger content as pending until future moderation tooling exists.
 
 ### Pending Todos
 
-- Reuse the audited FE shells from `.planning/v1.4-PULL-AUDIT.md` instead of rebuilding visitor and organizer screens from zero.
-- Execute 02-01 to replace Discover and Detail mock routing with real exhibition/session reads.
-- Execute 02-02 to wire Event Registration and Visitor Profile to real registration and preference contracts.
+- None for v1.4.
 
 ### Blockers/Concerns
 
-- Frontend shells have moved ahead of the backend contract, so apparent UI progress must not be mistaken for completed phase execution.
-- Route-critical discovery, detail, registration, and organizer flows still enter through `apps/mobile/src/data/mockData.ts` and must be replaced phase by phase.
+- Runtime persistence is still in-memory even though Prisma schema and deterministic seed artifacts are aligned; any future persistence migration must preserve the validated DTO contracts and smoke workflow expectations.
 
 ## Session Continuity
 
 Last session: 2026-05-12
 Stopped at: v1.4 fully planned and ready for execution
-Resume file: .planning/phases/02-visitor-discovery-registration-and-profile/02-01-PLAN.md
+Resume file: .planning/phases/04-review-stamp-and-end-to-end-hardening/04-02-PLAN.md
 
 ## 2026-05-13 Update
 - Pre-implemented the Discover UI (Map View) from Phase 2 earlier than scheduled as requested.
@@ -72,3 +70,18 @@ Resume file: .planning/phases/02-visitor-discovery-registration-and-profile/02-0
 - Completed `.planning/phases/01-domain-schema-auth-and-shared-contracts/01-01-PLAN.md` with validated schema and shared contract alignment.
 - Completed `.planning/phases/01-domain-schema-auth-and-shared-contracts/01-02-PLAN.md` with auth/bootstrap endpoints, persisted session restore, and shared mobile primitives.
 - Advanced the active execution pointer to `.planning/phases/02-visitor-discovery-registration-and-profile/02-01-PLAN.md`.
+
+## 2026-05-20 Update
+- Completed `.planning/phases/02-visitor-discovery-registration-and-profile/02-01-PLAN.md` with live discover/detail reads, typed mobile query hooks, and API integration coverage.
+- Completed `.planning/phases/02-visitor-discovery-registration-and-profile/02-02-PLAN.md` with booking, visitor history, live preferences, and registration integration coverage.
+- Validated the repo end-to-end with `pnpm build` and `pnpm test` after finishing Phase 2.
+- Completed `.planning/phases/03-organizer-publication-and-queue-operations/03-01-PLAN.md` with organizer dashboard aggregates, organizer profile notifications, and mobile organizer screen tests.
+- Validated the repo end-to-end with `pnpm build` and `pnpm test` after finishing 03-01.
+- Completed `.planning/phases/03-organizer-publication-and-queue-operations/03-02-PLAN.md` with organizer authoring endpoints, live Exhibition Editor/Form Builder screens, and authoring test coverage.
+- Validated the repo end-to-end with `pnpm build` and `pnpm test` after finishing 03-02.
+- Completed `.planning/phases/03-organizer-publication-and-queue-operations/03-03-PLAN.md` with live organizer queue flows, attendance actions, and queue screen test coverage.
+- Validated the repo end-to-end with `pnpm build` and `pnpm test` after finishing 03-03.
+- Completed `.planning/phases/04-review-stamp-and-end-to-end-hardening/04-01-PLAN.md` with attendance-gated reviews, live stamp progress, and visitor review/vault screen coverage.
+- Validated the repo end-to-end with `pnpm build` and `pnpm test` after finishing 04-01.
+- Completed `.planning/phases/04-review-stamp-and-end-to-end-hardening/04-02-PLAN.md` with route de-mocking, meaningful lint scripts, and API/mobile smoke validation.
+- Validated the repo end-to-end with `pnpm lint`, `pnpm build`, and `pnpm test` after finishing 04-02.
