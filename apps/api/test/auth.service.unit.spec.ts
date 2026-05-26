@@ -1,10 +1,24 @@
 import { UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 
+import type { AssetsService } from "../src/assets/assets.service";
 import { AuthService } from "../src/auth/auth.service";
+import { AppStateService } from "../src/persistence/app-state.service";
+import type { PrismaService } from "../src/persistence/prisma.service";
 
 function createService() {
-  return new AuthService(new JwtService({ secret: "unit-test-secret" }));
+  const prisma = {
+    runtimeState: {
+      findUnique: async () => null,
+      create: async () => undefined,
+      upsert: async () => undefined,
+    },
+  } as unknown as PrismaService;
+  const assetsService = {
+    deleteManagedAsset: async () => undefined,
+  } as unknown as AssetsService;
+
+  return new AuthService(new JwtService({ secret: "unit-test-secret" }), new AppStateService(prisma), assetsService);
 }
 
 describe("AuthService", () => {

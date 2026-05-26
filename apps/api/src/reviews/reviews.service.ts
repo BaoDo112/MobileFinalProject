@@ -3,20 +3,10 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { AuthService } from "../auth/auth.service";
 import type { ReviewHubDto, ReviewItemDto, ReviewStatus, SaveReviewDto } from "../common/contracts";
 import { ExhibitionsService } from "../exhibitions/exhibitions.service";
+import { AppStateService } from "../persistence/app-state.service";
+import type { ReviewRecord } from "../persistence/app-state.types";
 import { RegistrationsService } from "../registrations/registrations.service";
 import { StampsService } from "../stamps/stamps.service";
-
-type ReviewRecord = Readonly<{
-  id: string;
-  exhibitionId: string;
-  visitorId: string;
-  authorName: string;
-  rating: number;
-  content: string;
-  status: ReviewStatus;
-  createdAt: string;
-  updatedAt?: string;
-}>;
 
 const REVIEW_GUIDELINES = [
   "Reviews unlock only after organizer check-in confirms you attended the exhibition.",
@@ -28,16 +18,13 @@ const MODERATION_TRIGGERS = ["http://", "https://", "telegram", "refund", "dm me
 
 @Injectable()
 export class ReviewsService {
-  private readonly records: ReviewRecord[];
-
   constructor(
     private readonly authService: AuthService,
     private readonly exhibitionsService: ExhibitionsService,
     private readonly registrationsService: RegistrationsService,
     private readonly stampsService: StampsService,
-  ) {
-    this.records = this.buildSeedReviews();
-  }
+    private readonly appState: AppStateService,
+  ) {}
 
   async getHub(token: string, exhibitionId: string): Promise<ReviewHubDto> {
     const session = await this.authService.getSessionEnvelope(token);
@@ -92,10 +79,14 @@ export class ReviewsService {
     };
 
     this.upsertReview(review);
-    this.exhibitionsService.syncReviewPreview({ exhibitionId, ...this.toReviewItem(review) });
+    await this.appState.persist();
+    await this.exhibitionsService.syncReviewPreview({ exhibitionId, ...this.toReviewItem(review) });
 
     if (status === "PUBLISHED") {
-      this.stampsService.issueMilestoneStamp(session.user.id, exhibitionId, "published-review");
+      const milestoneIssuance = Promise.resolve(
+        this.stampsService.issueMilestoneStamp(session.user.id, exhibitionId, "published-review"),
+      );
+      await milestoneIssuance;
     }
 
     return this.buildHub(session.user.id, exhibitionId, exhibition.title, review);
@@ -173,14 +164,8 @@ export class ReviewsService {
     this.records.push(review);
   }
 
-  private buildSeedReviews(): ReviewRecord[] {
-    return this.exhibitionsService.listDiscover().flatMap((summary, exhibitionIndex) =>
-      this.exhibitionsService.getDetail(summary.id).reviewPreview.map((review, reviewIndex) => ({
-        exhibitionId: summary.id,
-        visitorId: `seed-reviewer-${exhibitionIndex + 1}-${reviewIndex + 1}`,
-        ...review,
-      }))
-    );
+  private get records() {
+    return this.appState.getState().reviews.records;
   }
 
   private toReviewItem(review: ReviewRecord): ReviewItemDto {

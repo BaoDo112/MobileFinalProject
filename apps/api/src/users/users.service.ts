@@ -14,6 +14,10 @@ export class UsersService {
     return this.authService.getSessionEnvelope(token);
   }
 
+  updateCurrentAvatar(token: string, avatarUrl: string) {
+    return this.authService.updateProfileAvatar(token, avatarUrl);
+  }
+
   async getVisitorWorkspace(token: string) {
     const session = await this.authService.getSessionEnvelope(token);
     const visits = await this.registrationsService.listVisitorVisits(token);

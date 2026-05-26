@@ -35,6 +35,7 @@ export interface VisitorProfile {
   id: string;
   userId: string;
   name: string;
+  avatarUrl?: string;
   fullName?: string;
   phoneNumber?: string;
   tagline?: string;
@@ -49,6 +50,7 @@ export interface OrganizerProfile {
   id: string;
   userId: string;
   name: string;
+  avatarUrl?: string;
   organizationName?: string;
   phoneNumber?: string;
   tagline?: string;
@@ -84,6 +86,7 @@ export interface UserProfile {
   id: string;
   userId: string;
   name: string;
+  avatarUrl?: string;
   fullName?: string;
   gender?: string;
   dateOfBirth?: string;

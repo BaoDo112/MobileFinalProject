@@ -1,0 +1,61 @@
+name: Build Mobile Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to build on EAS
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - android
+          - ios
+
+concurrency:
+  group: mobile-production-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Expo token
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "Missing repository secret EXPO_TOKEN"
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Validate mobile workspace
+        run: pnpm --filter @arthera/mobile build
+
+      - name: Trigger EAS production build
+        working-directory: apps/mobile
+        run: eas build --platform ${{ inputs.platform }} --profile production --non-interactive

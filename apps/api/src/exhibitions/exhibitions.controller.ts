@@ -118,8 +118,8 @@ export class ExhibitionsController {
   async createDraft(@Headers("authorization") authorization?: string) {
     const organizerSession = await this.requireOrganizerSession(authorization);
     const organizerName = organizerSession.organizerProfile?.organizationName ?? organizerSession.organizerProfile?.name ?? organizerSession.user.email;
-    const draft = this.exhibitionsService.createDraft(organizerSession.user.id, organizerName);
-    this.formSchemasService.initializeDraftSchema(draft.id);
+    const draft = await this.exhibitionsService.createDraft(organizerSession.user.id, organizerName);
+    await this.formSchemasService.initializeDraftSchema(draft.id);
     return this.exhibitionsService.getEditorState(draft.id, this.getEditorContext(draft.id));
   }
 

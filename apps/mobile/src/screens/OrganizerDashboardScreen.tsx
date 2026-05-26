@@ -44,10 +44,10 @@ function formatStatusLabel(status: OrganizerExhibitionCardDto["status"]) {
 
 function getHeroCopy(data: OrganizerDashboardDto) {
   if (data.urgentQueueCount > 0) {
-    return "Queue work is active. Start with urgent submissions, then fan back out to form or publishing tasks.";
+    return "Urgent submissions need attention first.";
   }
 
-  return "Dashboard is healthy. Use this window to refine briefs, field design, and publishing cadence before the next queue spike.";
+  return "Queue is calm. Keep briefs and publishing ready for the next spike.";
 }
 
 export function OrganizerDashboardScreen({
@@ -73,7 +73,7 @@ export function OrganizerDashboardScreen({
 
   if (dashboardQuery.isLoading) {
     return (
-      <ScreenShell title="Organizer Dashboard" subtitle="Loading queue, session, and exhibition aggregates from the command-center API.">
+      <ScreenShell title="Organizer Dashboard" subtitle="Loading dashboard data.">
         <StatusChip label="Loading dashboard" tone="neutral" />
       </ScreenShell>
     );
@@ -81,7 +81,7 @@ export function OrganizerDashboardScreen({
 
   if (dashboardQuery.isError || !dashboardQuery.data) {
     return (
-      <ScreenShell title="Organizer Dashboard" subtitle="The organizer aggregate surface could not be restored.">
+      <ScreenShell title="Organizer Dashboard" subtitle="Dashboard data is unavailable.">
         <ErrorRecoveryPanel
           description={dashboardQuery.error instanceof Error ? dashboardQuery.error.message : "Organizer dashboard could not be loaded."}
           onRetry={() => dashboardQuery.refetch()}
@@ -91,7 +91,7 @@ export function OrganizerDashboardScreen({
   }
 
   return (
-    <ScreenShell title="Organizer Dashboard" subtitle="Monitor queue health, session pressure, and exhibition shortcuts from the same workflow data used by the organizer pipeline.">
+    <ScreenShell title="Organizer Dashboard" subtitle="Monitor queue load, sessions, and quick actions in one place.">
       <View style={styles.heroCard}>
         <Text style={styles.kicker}>Command center</Text>
         <Text style={styles.heroTitle}>{getHeroCopy(dashboardQuery.data)}</Text>
@@ -115,12 +115,6 @@ export function OrganizerDashboardScreen({
         ))}
       </View>
 
-      <View style={styles.queueCard}>
-        <Text style={styles.sectionTitle}>Urgent queue</Text>
-        <Text style={styles.queueCount}>{dashboardQuery.data.urgentQueueCount}</Text>
-        <Text style={styles.heroCopy}>Pending or waitlisted items that will likely need organizer attention first.</Text>
-      </View>
-
       <View style={styles.filterRow}>
         {statusOptions.map((option) => (
           <Pressable
@@ -136,7 +130,7 @@ export function OrganizerDashboardScreen({
       {visibleExhibitions.length === 0 ? (
         <EmptyStateBanner
           title="No exhibitions in this filter"
-          description="Clear the current filter or create a new exhibition draft to reopen the organizer command center."
+          description="Clear the filter or create a draft to see exhibitions again."
           actionLabel="Create exhibition draft"
           onAction={onCreateExhibition}
         />
@@ -149,8 +143,7 @@ export function OrganizerDashboardScreen({
             <StatusChip label={`${exhibition.pendingCount} pending`} tone={exhibition.pendingCount > 0 ? "warning" : "neutral"} />
           </View>
           <Text style={styles.cardTitle}>{exhibition.title}</Text>
-          <Text style={styles.cardMeta}>{exhibition.venueTitle ?? "Venue pending"}</Text>
-          <Text style={styles.cardMeta}>{exhibition.checkedInCount} checked-in · {exhibition.nextAction ?? "No next action"}</Text>
+          <Text style={styles.cardMeta}>{exhibition.venueTitle ?? "Venue pending"} · {exhibition.checkedInCount} checked-in · {exhibition.nextAction ?? "No next action"}</Text>
           <View style={styles.actionRow}>
             <Pressable style={styles.secondaryButton} onPress={() => onEditExhibition(exhibition.exhibitionId)}>
               <Text style={styles.secondaryButtonText}>Edit brief</Text>
@@ -243,29 +236,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.8,
-  },
-  queueCard: {
-    backgroundColor: palette.card,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: spacing.lg,
-    gap: spacing.xs,
-  },
-  sectionTitle: {
-    color: palette.text,
-    fontFamily: typography.body,
-    fontSize: 14,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  queueCount: {
-    color: palette.text,
-    fontFamily: typography.display,
-    fontSize: 38,
-    lineHeight: 42,
-    fontWeight: "700",
   },
   filterRow: {
     flexDirection: "row",

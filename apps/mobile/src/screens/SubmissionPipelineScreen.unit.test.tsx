@@ -79,8 +79,7 @@ describe("SubmissionPipelineScreen", () => {
     render(<SubmissionPipelineScreen onOpenSubmissions={onOpenSubmissions} />);
 
     expect(screen.getByText("Lightwave: Kinetic Gallery")).toBeOnTheScreen();
-    expect(screen.getByText("Queue preview")).toBeOnTheScreen();
-    expect(screen.getByText("Linh Dao")).toBeOnTheScreen();
+    expect(screen.getByText("Open review board")).toBeOnTheScreen();
 
     fireEvent.press(screen.getByText("Open review board"));
 

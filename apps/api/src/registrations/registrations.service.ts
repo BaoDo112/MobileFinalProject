@@ -19,37 +19,21 @@ import type {
 } from "../common/contracts";
 import { ExhibitionsService } from "../exhibitions/exhibitions.service";
 import { FormSchemasService } from "../form-schemas/form-schemas.service";
+import { AppStateService } from "../persistence/app-state.service";
+import type { RegistrationRecord } from "../persistence/app-state.types";
 import { SessionsService } from "../sessions/sessions.service";
 import { StampsService } from "../stamps/stamps.service";
 
-type RegistrationRecord = Readonly<{
-  id: string;
-  attendeeName: string;
-  userId: string;
-  exhibitionId: string;
-  exhibitionTitle: string;
-  sessionId: string;
-  sessionLabel: string;
-  status: RegistrationStatus;
-  note?: string;
-  answers: RegistrationAnswerInput[];
-  submittedAt: string;
-  checkedInAt?: string;
-}>;
-
 @Injectable()
 export class RegistrationsService {
-  private readonly records: RegistrationRecord[];
-
   constructor(
     private readonly authService: AuthService,
     private readonly exhibitionsService: ExhibitionsService,
     private readonly formSchemasService: FormSchemasService,
     private readonly sessionsService: SessionsService,
     private readonly stampsService: StampsService,
-  ) {
-    this.records = this.buildSeedRecords();
-  }
+    private readonly appState: AppStateService,
+  ) {}
 
   getDraft(exhibitionId: string, sessionId?: string) {
     return this.formSchemasService.getActiveDraft(exhibitionId, sessionId);
@@ -95,7 +79,8 @@ export class RegistrationsService {
       checkedInAt: undefined,
     });
 
-    this.syncSessionOccupancy(payload.sessionId);
+    await this.appState.persist();
+    await this.syncSessionOccupancy(payload.sessionId);
 
     return {
       registrationId: `reg-${this.records.length}`,
@@ -223,10 +208,14 @@ export class RegistrationsService {
     };
 
     this.replaceRecord(updatedRecord);
-    this.syncSessionOccupancy(record.sessionId);
+    await this.appState.persist();
+    await this.syncSessionOccupancy(record.sessionId);
 
     if (action === "CHECK_IN") {
-      this.stampsService.issue(record.userId, record.exhibitionId, `${record.exhibitionTitle} attendance`, record.id);
+      const stampIssuance = Promise.resolve(
+        this.stampsService.issue(record.userId, record.exhibitionId, `${record.exhibitionTitle} attendance`, record.id),
+      );
+      await stampIssuance;
     }
 
     return this.getSubmissionReview(token, record.exhibitionId, record.id);
@@ -359,8 +348,8 @@ export class RegistrationsService {
 
   private buildSubmissionDetail(registrationId: string): SubmissionDecisionDetailDto {
     const record = this.requireRecord(registrationId);
-    const draft = this.formSchemasService.getActiveDraft(record.exhibitionId, record.sessionId);
-    const fieldLabels = new Map(draft.fields.map((field) => [field.id, field.label]));
+    const draft = this.getReviewDraft(record.exhibitionId, record.sessionId);
+    const fieldLabels = new Map(draft?.fields.map((field) => [field.id, field.label]) ?? []);
     const stampNotice = record.status === "CHECKED_IN" ? "Attendance recorded. This visitor can now unlock review and stamp rewards." : undefined;
 
     return {
@@ -378,6 +367,18 @@ export class RegistrationsService {
         value: answer.value,
       })),
     };
+  }
+
+  private getReviewDraft(exhibitionId: string, sessionId: string) {
+    try {
+      return this.formSchemasService.getActiveDraft(exhibitionId, sessionId);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return undefined;
+      }
+
+      throw error;
+    }
   }
 
   private getAvailableActions(status: RegistrationStatus): SubmissionDecisionAction[] {
@@ -491,10 +492,14 @@ export class RegistrationsService {
     });
   }
 
-  private syncSessionOccupancy(sessionId: string) {
+  private async syncSessionOccupancy(sessionId: string) {
     const records = this.records.filter((record) => record.sessionId === sessionId);
     const reservedCount = records.filter((record) => record.status === "CONFIRMED" || record.status === "CHECKED_IN").length;
-    this.exhibitionsService.syncSessionOccupancy(sessionId, reservedCount);
+    await this.exhibitionsService.syncSessionOccupancy(sessionId, reservedCount);
+  }
+
+  private get records() {
+    return this.appState.getState().registrations.records;
   }
 
   private requireRecord(registrationId: string) {

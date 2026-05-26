@@ -16,6 +16,7 @@ import type {
 } from "./models";
 
 export type RegistrationCtaState = "open" | "waitlist" | "closed";
+export type AssetUploadScope = "profile-avatar" | "exhibition-media";
 
 export type AuthResponse = AuthSessionEnvelope;
 
@@ -56,6 +57,13 @@ export interface NotificationSettingsDto extends Pick<NotificationPreference, "e
 
 export type UpdateNotificationSettingsDto = Partial<NotificationSettingsDto>;
 
+export interface AssetUploadResponseDto {
+  key: string;
+  url: string;
+  fileName: string;
+  contentType?: string;
+}
+
 export interface AuthSessionEnvelope {
   token: string;
   user: User;
@@ -83,6 +91,7 @@ export interface ExhibitionSummaryDto {
   title: string;
   bio?: string;
   exhibitionType: string;
+  heroImageUrl?: string;
   status: ExhibitionStatus;
   timelineStatus: "PRESENT" | "FUTURE" | "PAST";
   organizerName: string;

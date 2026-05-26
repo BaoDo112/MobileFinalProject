@@ -16,11 +16,11 @@ type ScreenShellProps = Readonly<
 export function ScreenShell({ title, subtitle, eyebrow, hideHeader, headerVariant = "card", children }: ScreenShellProps) {
   return (
     <View style={styles.container}>
-      <View pointerEvents="none" style={styles.topOrb} />
-      <View pointerEvents="none" style={styles.bottomOrb} />
+      <View style={styles.topOrb} />
+      <View style={styles.bottomOrb} />
       <ScrollView
         style={styles.root}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, hideHeader && styles.contentWithoutHeader]}
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
@@ -49,8 +49,11 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 120,
     gap: spacing.sm
+  },
+  contentWithoutHeader: {
+    paddingTop: 0,
   },
   headerCard: {
     gap: 6,
@@ -100,7 +103,8 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 999,
     backgroundColor: palette.cardStrong,
-    opacity: 0.42
+    opacity: 0.42,
+    pointerEvents: "none"
   },
   bottomOrb: {
     position: "absolute",
@@ -110,6 +114,7 @@ const styles = StyleSheet.create({
     height: 210,
     borderRadius: 999,
     backgroundColor: palette.backgroundAlt,
-    opacity: 0.65
+    opacity: 0.65,
+    pointerEvents: "none"
   }
 });

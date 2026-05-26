@@ -3,6 +3,7 @@
     "name": "Arthera",
     "slug": "arthera-mobile",
     "version": "0.1.0",
+    "scheme": "arthera",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,14 +16,18 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.arthera.mobile",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#fffdf0"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.arthera.mobile",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -30,6 +35,12 @@
     "plugins": [
       "expo-secure-store",
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "apiUrl": "http://192.168.1.98:3100",
+      "eas": {
+        "projectId": "af9250c9-47cd-4ee9-a561-ce6680a47f3e"
+      }
+    }
   }
 }

@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 
+import { AssetsService } from "../assets/assets.service";
 import type {
   AuthoringSessionDto,
   ExhibitionEditorDto,
@@ -25,6 +26,7 @@ import {
   type ExhibitionReviewRecord,
   type ExhibitionSessionRecord,
 } from "./exhibitions.mapper";
+import { AppStateService } from "../persistence/app-state.service";
 
 type DiscoverFilters = Readonly<{
   timeline?: DiscoverTimeline;
@@ -261,20 +263,28 @@ function buildSeedData(referenceDate: Date) {
 
 @Injectable()
 export class ExhibitionsService {
-  private readonly records: ExhibitionRecord[];
-  private readonly venues: Venue[];
-  private readonly sessionRecords: ExhibitionSessionRecord[];
-  private readonly reviewRecords: ExhibitionReviewRecord[];
+  constructor(
+    private readonly appState: AppStateService,
+    private readonly assetsService: AssetsService,
+  ) {}
 
-  constructor() {
-    const seed = buildSeedData(new Date());
-    this.records = [...seed.exhibitions];
-    this.venues = [...seed.venues];
-    this.sessionRecords = [...seed.sessions];
-    this.reviewRecords = [...seed.reviews];
+  private get records() {
+    return this.appState.getState().exhibitions.records;
   }
 
-  create(payload: ExhibitionPayload) {
+  private get venues() {
+    return this.appState.getState().exhibitions.venues;
+  }
+
+  private get sessionRecords() {
+    return this.appState.getState().exhibitions.sessions;
+  }
+
+  private get reviewRecords() {
+    return this.appState.getState().exhibitions.reviewRecords;
+  }
+
+  async create(payload: ExhibitionPayload) {
     const record = this.buildDraftRecord({
       organizerId: payload.organizerId,
       organizerName: payload.organizerId,
@@ -285,12 +295,14 @@ export class ExhibitionsService {
     });
 
     this.records.push(record);
+    await this.appState.persist();
     return record;
   }
 
-  createDraft(organizerId: string, organizerName: string) {
+  async createDraft(organizerId: string, organizerName: string) {
     const record = this.buildDraftRecord({ organizerId, organizerName });
     this.records.push(record);
+    await this.appState.persist();
     return record;
   }
 
@@ -396,10 +408,11 @@ export class ExhibitionsService {
     };
   }
 
-  saveDraft(exhibitionId: string, payload: SaveExhibitionDraftDto, context: EditorContext): ExhibitionEditorDto {
+  async saveDraft(exhibitionId: string, payload: SaveExhibitionDraftDto, context: EditorContext): Promise<ExhibitionEditorDto> {
     const record = this.requireRecord(exhibitionId);
     this.ensureEditable(record, context.isLocked, context.lockReason);
     this.validateVenue(payload.venueId);
+    const previousMediaUrls = [...record.mediaUrls];
 
     const updatedAt = new Date().toISOString();
     const nextRecord: ExhibitionRecord = {
@@ -421,6 +434,8 @@ export class ExhibitionsService {
 
     this.replaceRecord(nextRecord);
     this.replaceSessions(exhibitionId, nextSessions);
+    await this.appState.persist();
+    await this.cleanupRemovedManagedMedia(exhibitionId, previousMediaUrls, nextRecord.mediaUrls);
 
     return this.getEditorState(exhibitionId, {
       ...context,
@@ -428,7 +443,7 @@ export class ExhibitionsService {
     });
   }
 
-  publishDraft(exhibitionId: string, context: EditorContext): ExhibitionEditorDto {
+  async publishDraft(exhibitionId: string, context: EditorContext): Promise<ExhibitionEditorDto> {
     const record = this.requireRecord(exhibitionId);
     this.ensureEditable(record, context.isLocked, context.lockReason);
     const sessions = this.getSessions(exhibitionId);
@@ -455,6 +470,7 @@ export class ExhibitionsService {
         registrationState: this.resolveRegistrationState(session.capacity, session.reservedCount, session.waitlistCapacity, session.status, true),
       }))
     );
+    await this.appState.persist();
 
     return this.getEditorState(exhibitionId, context);
   }
@@ -478,12 +494,13 @@ export class ExhibitionsService {
     throw new NotFoundException("Session not found.");
   }
 
-  syncReviewPreview(review: ReviewItemDto & Readonly<{ exhibitionId: string }>) {
+  async syncReviewPreview(review: ReviewItemDto & Readonly<{ exhibitionId: string }>) {
     const currentIndex = this.reviewRecords.findIndex((candidate) => candidate.id === review.id);
 
     if (review.status !== "PUBLISHED") {
       if (currentIndex >= 0) {
         this.reviewRecords.splice(currentIndex, 1);
+        await this.appState.persist();
       }
 
       return;
@@ -491,13 +508,15 @@ export class ExhibitionsService {
 
     if (currentIndex >= 0) {
       this.reviewRecords.splice(currentIndex, 1, review);
+      await this.appState.persist();
       return;
     }
 
     this.reviewRecords.push(review);
+    await this.appState.persist();
   }
 
-  syncSessionOccupancy(sessionId: string, reservedCount: number) {
+  async syncSessionOccupancy(sessionId: string, reservedCount: number) {
     const session = this.sessionRecords.find((candidate) => candidate.id === sessionId);
     if (!session) {
       throw new NotFoundException("Session not found.");
@@ -518,6 +537,7 @@ export class ExhibitionsService {
 
     const index = this.sessionRecords.findIndex((candidate) => candidate.id === sessionId);
     this.sessionRecords.splice(index, 1, nextSession);
+    await this.appState.persist();
     return nextSession;
   }
 
@@ -715,6 +735,23 @@ export class ExhibitionsService {
     }
 
     this.sessionRecords.push(...nextSessions);
+  }
+
+  private async cleanupRemovedManagedMedia(exhibitionId: string, previousMediaUrls: readonly string[], nextMediaUrls: readonly string[]) {
+    const nextMediaUrlSet = new Set(nextMediaUrls);
+
+    for (const mediaUrl of previousMediaUrls) {
+      if (nextMediaUrlSet.has(mediaUrl) || !this.assetsService.getManagedAssetKey(mediaUrl)) {
+        continue;
+      }
+
+      const isStillReferenced = this.records.some((candidate) => candidate.id !== exhibitionId && candidate.mediaUrls.includes(mediaUrl));
+      if (isStillReferenced) {
+        continue;
+      }
+
+      await this.assetsService.deleteManagedAsset(mediaUrl);
+    }
   }
 
   private toAuthoringSessionDto(session: ExhibitionSessionRecord): AuthoringSessionDto {

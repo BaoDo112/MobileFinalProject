@@ -1,0 +1,75 @@
+name: Deploy API to Fly
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - apps/api/**
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - Dockerfile.fly
+      - fly.toml
+      - .dockerignore
+      - .github/workflows/deploy-api-fly.yml
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-api-fly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Validate Fly configuration inputs
+        env:
+          FLY_API_APP_NAME: ${{ vars.FLY_API_APP_NAME }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$FLY_API_APP_NAME" ]; then
+            echo "Missing repository variable FLY_API_APP_NAME"
+            exit 1
+          fi
+
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "Missing repository secret FLY_API_TOKEN"
+            exit 1
+          fi
+
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Missing repository secret DATABASE_URL"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bootstrap Neon schema and seed
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm --filter @arthera/api prisma:bootstrap
+
+      - name: Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy API
+        env:
+          FLY_API_APP_NAME: ${{ vars.FLY_API_APP_NAME }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --remote-only --config fly.toml --app "$FLY_API_APP_NAME"

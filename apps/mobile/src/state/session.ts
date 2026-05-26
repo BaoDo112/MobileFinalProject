@@ -1,7 +1,7 @@
 import { create } from "zustand";
-import * as SecureStore from "expo-secure-store";
 
 import { authApi } from "../api/auth";
+import { persistentStorage } from "./persistent-storage";
 import type { AuthSessionEnvelope, NotificationSettingsDto } from "../types/api";
 import type { OrganizerProfile, User, UserRole, VisitorProfile } from "../types/models";
 
@@ -67,8 +67,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   hydrate: async () => {
     try {
-      const token = await SecureStore.getItemAsync(TOKEN_KEY);
-      const snapshotRaw = await SecureStore.getItemAsync(SESSION_KEY);
+      const token = await persistentStorage.getItem(TOKEN_KEY);
+      const snapshotRaw = await persistentStorage.getItem(SESSION_KEY);
 
       if (token && snapshotRaw) {
         const snapshot = JSON.parse(snapshotRaw) as SessionSnapshot;
@@ -77,8 +77,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       }
     } catch (error) {
       console.warn("Session hydration failed", error);
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
-      await SecureStore.deleteItemAsync(SESSION_KEY);
+      await persistentStorage.deleteItem(TOKEN_KEY);
+      await persistentStorage.deleteItem(SESSION_KEY);
     }
 
     set({
@@ -95,8 +95,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   setSessionEnvelope: async (session) => {
     const snapshot = toSnapshot(session);
-    await SecureStore.setItemAsync(TOKEN_KEY, session.token);
-    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(snapshot));
+    await persistentStorage.setItem(TOKEN_KEY, session.token);
+    await persistentStorage.setItem(SESSION_KEY, JSON.stringify(snapshot));
     set({ token: session.token, ...applySnapshot(snapshot) });
   },
 
@@ -111,8 +111,8 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   clearSession: async () => {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
-    await SecureStore.deleteItemAsync(SESSION_KEY);
+    await persistentStorage.deleteItem(TOKEN_KEY);
+    await persistentStorage.deleteItem(SESSION_KEY);
     set({
       token: null,
       user: null,

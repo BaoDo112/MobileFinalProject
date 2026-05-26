@@ -1,0 +1,14 @@
+.git
+.github
+.planning
+.vscode
+node_modules
+**/node_modules
+**/.expo
+**/coverage
+**/dist
+apps/mobile
+images
+project.pen
+app.json
+README.md

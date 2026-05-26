@@ -1,4 +1,5 @@
-import MapView, { Marker } from "react-native-maps";
+import MapView from "react-native-maps";
 
-export { Marker };
+
 export default MapView;
+export {Marker} from "react-native-maps";

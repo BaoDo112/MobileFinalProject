@@ -84,8 +84,13 @@ function formatDateRangeLabel(sessions: readonly ExhibitionSessionRecord[]) {
     return "Schedule to be announced";
   }
 
+  const lastSession = ordered.at(-1);
+  if (!lastSession) {
+    return "Schedule to be announced";
+  }
+
   const first = new Date(ordered[0].startsAt);
-  const last = new Date(ordered.at(-1)!.startsAt);
+  const last = new Date(lastSession.startsAt);
   if (first.toDateString() === last.toDateString()) {
     return formatDate(first);
   }
@@ -124,6 +129,10 @@ function getCapacityBadge(session?: ExhibitionSessionRecord) {
   return `${remaining} spots left`;
 }
 
+function pickHeroImageUrl(mediaUrls: readonly string[]) {
+  return mediaUrls.find((value) => /^https?:\/\//i.test(value) || value.startsWith("/"));
+}
+
 function toLegacyTimelineStatus(timeline: DiscoverTimeline): LegacyGalleryStatus {
   if (timeline === "future") {
     return "FUTURE";
@@ -146,8 +155,13 @@ export function getDiscoverTimeline(
   }
 
   const ordered = sortSessions(sessions);
+  const lastSession = ordered.at(-1);
+  if (!lastSession) {
+    return exhibitionStatus === "CLOSED" ? "past" : "future";
+  }
+
   const firstStart = Date.parse(ordered[0].startsAt);
-  const lastEnd = Date.parse(ordered.at(-1)!.endsAt);
+  const lastEnd = Date.parse(lastSession.endsAt);
 
   if (exhibitionStatus === "CLOSED" || lastEnd < now.getTime()) {
     return "past";
@@ -188,6 +202,7 @@ export function toExhibitionSummary(
     title: exhibition.title,
     bio: exhibition.bio,
     exhibitionType: exhibition.exhibitionType,
+    heroImageUrl: pickHeroImageUrl(exhibition.mediaUrls),
     status: exhibition.status,
     timelineStatus: toLegacyTimelineStatus(timeline),
     organizerName: exhibition.organizerName,

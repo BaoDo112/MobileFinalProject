@@ -1,19 +1,19 @@
-import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Injectable, OnModuleInit, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
 import { randomUUID } from "node:crypto";
 
 import type {
-  AuthAccount,
   AuthProvider,
   AuthSessionEnvelope,
   NotificationPreference,
   NotificationSettingsDto,
-  OrganizerProfile,
   User,
   UserRole,
-  VisitorProfile,
 } from "../common/contracts";
+import { AssetsService } from "../assets/assets.service";
+import { AppStateService } from "../persistence/app-state.service";
+import type { StoredAccount } from "../persistence/app-state.types";
 
 const AVAILABLE_ROLES: UserRole[] = ["VISITOR", "ORGANIZER"];
 const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsDto = {
@@ -24,16 +24,16 @@ const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsDto = {
   marketingOptIn: false,
 };
 
-type StoredAccount = AuthAccount & {
-  passwordHash?: string;
-};
-
 type SessionRecord = {
   token: string;
   userId: string;
   activeRole: UserRole;
-  createdAt: string;
 };
+
+type SessionTokenPayload = Readonly<{
+  sub?: string;
+  activeRole?: UserRole;
+}>;
 
 export type RegisterInput = {
   email: string;
@@ -56,28 +56,25 @@ export type GoogleContinuationInput = {
 };
 
 @Injectable()
-export class AuthService {
-  private readonly usersById = new Map<string, User>();
-  private readonly userIdsByEmail = new Map<string, string>();
-  private readonly accountsByKey = new Map<string, StoredAccount>();
-  private readonly visitorProfilesByUserId = new Map<string, VisitorProfile>();
-  private readonly organizerProfilesByUserId = new Map<string, OrganizerProfile>();
-  private readonly preferencesByUserId = new Map<string, NotificationPreference>();
-  private readonly sessionsByToken = new Map<string, SessionRecord>();
+export class AuthService implements OnModuleInit {
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly appState: AppStateService,
+    private readonly assetsService: AssetsService,
+  ) {}
 
-  constructor(private readonly jwtService: JwtService) {
-    this.seedDemoAccountsFromEnv();
+  async onModuleInit() {
+    await this.seedDemoAccountsFromEnv();
   }
 
   async registerLocal(input: RegisterInput): Promise<AuthSessionEnvelope> {
     const email = this.normalizeEmail(input.email);
-    const localKey = this.accountKey("LOCAL", email);
-    if (this.accountsByKey.has(localKey)) {
+    if (this.getAccount("LOCAL", email)) {
       throw new BadRequestException("A local account already exists for this email.");
     }
 
     const user = this.getUserByEmail(email) ?? this.createUser(email, input.role);
-    this.accountsByKey.set(localKey, {
+    this.accounts.push({
       id: randomUUID(),
       userId: user.id,
       provider: "LOCAL",
@@ -89,12 +86,13 @@ export class AuthService {
 
     this.ensureProfileForRole(user.id, input.role, input.name);
     this.ensurePreferences(user.id);
+    await this.appState.persist();
     return this.issueSession(user.id, input.role);
   }
 
   async loginLocal(input: LoginInput): Promise<AuthSessionEnvelope> {
     const email = this.normalizeEmail(input.email);
-    const storedAccount = this.accountsByKey.get(this.accountKey("LOCAL", email));
+    const storedAccount = this.getAccount("LOCAL", email);
     if (!storedAccount?.passwordHash) {
       throw new UnauthorizedException("Invalid email or password.");
     }
@@ -106,7 +104,11 @@ export class AuthService {
 
     const user = this.requireUser(storedAccount.userId);
     const activeRole = input.role ?? user.preferredRole ?? user.role;
-    this.ensureProfileForRole(user.id, activeRole, this.getDisplayName(user.id));
+    const didChange = this.ensureProfileForRole(user.id, activeRole, this.getDisplayName(user.id));
+    if (didChange) {
+      await this.appState.persist();
+    }
+
     return this.issueSession(user.id, activeRole);
   }
 
@@ -114,10 +116,9 @@ export class AuthService {
     const email = this.normalizeEmail(input.email);
     const providerId = input.providerId?.trim() || email;
     const user = this.getUserByEmail(email) ?? this.createUser(email, input.role);
-    const googleKey = this.accountKey("GOOGLE", providerId);
 
-    if (!this.accountsByKey.has(googleKey)) {
-      this.accountsByKey.set(googleKey, {
+    if (!this.getAccount("GOOGLE", providerId)) {
+      this.accounts.push({
         id: randomUUID(),
         userId: user.id,
         provider: "GOOGLE",
@@ -129,18 +130,19 @@ export class AuthService {
 
     this.ensureProfileForRole(user.id, input.role, input.name);
     this.ensurePreferences(user.id);
+    await this.appState.persist();
     return this.issueSession(user.id, input.role);
   }
 
   async getSessionEnvelope(token: string): Promise<AuthSessionEnvelope> {
     const session = await this.requireSession(token);
-    return this.buildSessionEnvelope(session.userId, session.activeRole, session.token);
+    return this.buildSessionEnvelope(session.userId, session.activeRole, token);
   }
 
   async selectActiveRole(token: string, role: UserRole): Promise<AuthSessionEnvelope> {
     const session = await this.requireSession(token);
     this.ensureProfileForRole(session.userId, role, this.getDisplayName(session.userId));
-    this.sessionsByToken.delete(token);
+    await this.appState.persist();
     return this.issueSession(session.userId, role);
   }
 
@@ -169,36 +171,109 @@ export class AuthService {
       updatedAt: this.now(),
     };
 
-    this.preferencesByUserId.set(session.userId, next);
+    const currentIndex = this.preferences.findIndex((preference) => preference.userId === session.userId);
+    if (currentIndex >= 0) {
+      this.preferences.splice(currentIndex, 1, next);
+    } else {
+      this.preferences.push(next);
+    }
+
+    await this.appState.persist();
     return this.toNotificationSettings(next);
   }
 
-  private seedDemoAccountsFromEnv() {
+  async updateProfileAvatar(token: string, avatarUrl: string): Promise<AuthSessionEnvelope> {
+    const session = await this.requireSession(token);
+    const nextAvatarUrl = avatarUrl.trim();
+    if (!nextAvatarUrl) {
+      throw new BadRequestException("Avatar URL is required.");
+    }
+
+    this.ensureProfileForRole(session.userId, session.activeRole, this.getDisplayName(session.userId));
+    let previousAvatarUrl: string | undefined;
+    if (session.activeRole === "VISITOR") {
+      const profile = this.visitorProfiles.find((candidate) => candidate.userId === session.userId);
+      if (!profile) {
+        throw new UnauthorizedException("Visitor profile is unavailable.");
+      }
+
+      previousAvatarUrl = profile.avatarUrl;
+      profile.avatarUrl = nextAvatarUrl;
+      profile.updatedAt = this.now();
+    } else {
+      const profile = this.organizerProfiles.find((candidate) => candidate.userId === session.userId);
+      if (!profile) {
+        throw new UnauthorizedException("Organizer profile is unavailable.");
+      }
+
+      previousAvatarUrl = profile.avatarUrl;
+      profile.avatarUrl = nextAvatarUrl;
+      profile.updatedAt = this.now();
+    }
+
+    await this.appState.persist();
+    if (previousAvatarUrl && previousAvatarUrl !== nextAvatarUrl && !this.isAvatarStillReferenced(previousAvatarUrl)) {
+      await this.assetsService.deleteManagedAsset(previousAvatarUrl);
+    }
+    return this.buildSessionEnvelope(session.userId, session.activeRole, token);
+  }
+
+  private get users() {
+    return this.appState.getState().auth.users;
+  }
+
+  private get accounts() {
+    return this.appState.getState().auth.accounts;
+  }
+
+  private get visitorProfiles() {
+    return this.appState.getState().auth.visitorProfiles;
+  }
+
+  private get organizerProfiles() {
+    return this.appState.getState().auth.organizerProfiles;
+  }
+
+  private get preferences() {
+    return this.appState.getState().auth.preferences;
+  }
+
+  private async seedDemoAccountsFromEnv() {
+    let didChange = false;
+
     const visitorPassword = process.env.ARTHERA_DEMO_VISITOR_PASSWORD?.trim();
     if (visitorPassword) {
-      this.seedDemoAccount({
+      didChange = this.seedDemoAccount({
         email: "visitor@arthera.local",
         password: visitorPassword,
         role: "VISITOR",
-        name: "Arthera Visitor"
-      });
+        name: "Arthera Visitor",
+      }) || didChange;
     }
 
     const organizerPassword = process.env.ARTHERA_DEMO_ORGANIZER_PASSWORD?.trim();
     if (organizerPassword) {
-      this.seedDemoAccount({
+      didChange = this.seedDemoAccount({
         email: "organizer@arthera.local",
         password: organizerPassword,
         role: "ORGANIZER",
-        name: "Arthera Organizer"
-      });
+        name: "Arthera Organizer",
+      }) || didChange;
+    }
+
+    if (didChange) {
+      await this.appState.persist();
     }
   }
 
   private seedDemoAccount(input: RegisterInput) {
     const email = this.normalizeEmail(input.email);
-    const user = this.createUser(email, input.role);
-    this.accountsByKey.set(this.accountKey("LOCAL", email), {
+    if (this.getAccount("LOCAL", email)) {
+      return false;
+    }
+
+    const user = this.getUserByEmail(email) ?? this.createUser(email, input.role);
+    this.accounts.push({
       id: randomUUID(),
       userId: user.id,
       provider: "LOCAL",
@@ -209,6 +284,7 @@ export class AuthService {
     });
     this.ensureProfileForRole(user.id, input.role, input.name);
     this.ensurePreferences(user.id);
+    return true;
   }
 
   private createUser(email: string, role: UserRole): User {
@@ -222,28 +298,29 @@ export class AuthService {
       updatedAt: now,
     };
 
-    this.usersById.set(user.id, user);
-    this.userIdsByEmail.set(email, user.id);
+    this.users.push(user);
     return user;
   }
 
   private getUserByEmail(email: string): User | undefined {
-    const userId = this.userIdsByEmail.get(email);
-    return userId ? this.usersById.get(userId) : undefined;
+    return this.users.find((user) => user.email === email);
   }
 
   private requireUser(userId: string): User {
-    const user = this.usersById.get(userId);
+    const user = this.users.find((candidate) => candidate.id === userId);
     if (!user) {
       throw new UnauthorizedException("Unknown user session.");
     }
+
     return user;
   }
 
   private ensureProfileForRole(userId: string, role: UserRole, displayName: string) {
+    let didChange = false;
+
     if (role === "VISITOR") {
-      if (!this.visitorProfilesByUserId.has(userId)) {
-        this.visitorProfilesByUserId.set(userId, {
+      if (!this.visitorProfiles.some((profile) => profile.userId === userId)) {
+        this.visitorProfiles.push({
           id: randomUUID(),
           userId,
           name: displayName,
@@ -255,9 +332,10 @@ export class AuthService {
           createdAt: this.now(),
           updatedAt: this.now(),
         });
+        didChange = true;
       }
-    } else if (!this.organizerProfilesByUserId.has(userId)) {
-      this.organizerProfilesByUserId.set(userId, {
+    } else if (!this.organizerProfiles.some((profile) => profile.userId === userId)) {
+      this.organizerProfiles.push({
         id: randomUUID(),
         userId,
         name: displayName,
@@ -267,20 +345,22 @@ export class AuthService {
         createdAt: this.now(),
         updatedAt: this.now(),
       });
+      didChange = true;
     }
 
     const user = this.requireUser(userId);
-    const nextUser: User = {
-      ...user,
-      role,
-      preferredRole: role,
-      updatedAt: this.now(),
-    };
-    this.usersById.set(userId, nextUser);
+    if (user.role !== role || user.preferredRole !== role) {
+      user.role = role;
+      user.preferredRole = role;
+      user.updatedAt = this.now();
+      didChange = true;
+    }
+
+    return didChange;
   }
 
   private ensurePreferences(userId: string): NotificationPreference {
-    const existing = this.preferencesByUserId.get(userId);
+    const existing = this.preferences.find((preference) => preference.userId === userId);
     if (existing) {
       return existing;
     }
@@ -293,7 +373,7 @@ export class AuthService {
       createdAt: now,
       updatedAt: now,
     };
-    this.preferencesByUserId.set(userId, preference);
+    this.preferences.push(preference);
     return preference;
   }
 
@@ -306,29 +386,33 @@ export class AuthService {
       roles: AVAILABLE_ROLES,
     });
 
-    this.sessionsByToken.set(token, {
-      token,
-      userId,
-      activeRole,
-      createdAt: this.now(),
-    });
-
     return this.buildSessionEnvelope(user.id, activeRole, token);
   }
 
   private async requireSession(token: string): Promise<SessionRecord> {
+    let payload: SessionTokenPayload;
+
     try {
-      await this.jwtService.verifyAsync(token);
+      payload = await this.jwtService.verifyAsync<SessionTokenPayload>(token);
     } catch {
       throw new UnauthorizedException("Session expired or invalid.");
     }
 
-    const session = this.sessionsByToken.get(token);
-    if (!session) {
+    const userId = typeof payload?.sub === "string" ? payload.sub : undefined;
+    if (!userId) {
       throw new UnauthorizedException("Session expired or invalid.");
     }
 
-    return session;
+    const user = this.requireUser(userId);
+    const activeRole = payload.activeRole === "VISITOR" || payload.activeRole === "ORGANIZER"
+      ? payload.activeRole
+      : user.preferredRole ?? user.role;
+
+    return {
+      token,
+      userId,
+      activeRole,
+    };
   }
 
   private buildSessionEnvelope(userId: string, activeRole: UserRole, token: string): AuthSessionEnvelope {
@@ -337,8 +421,8 @@ export class AuthService {
       user: this.requireUser(userId),
       activeRole,
       availableRoles: [...AVAILABLE_ROLES],
-      visitorProfile: this.visitorProfilesByUserId.get(userId),
-      organizerProfile: this.organizerProfilesByUserId.get(userId),
+      visitorProfile: this.visitorProfiles.find((profile) => profile.userId === userId),
+      organizerProfile: this.organizerProfiles.find((profile) => profile.userId === userId),
       notificationSettings: this.toNotificationSettings(this.ensurePreferences(userId)),
     };
   }
@@ -355,14 +439,19 @@ export class AuthService {
 
   private getDisplayName(userId: string): string {
     return (
-      this.visitorProfilesByUserId.get(userId)?.name ??
-      this.organizerProfilesByUserId.get(userId)?.name ??
+      this.visitorProfiles.find((profile) => profile.userId === userId)?.name ??
+      this.organizerProfiles.find((profile) => profile.userId === userId)?.name ??
       this.requireUser(userId).email.split("@")[0]
     );
   }
 
-  private accountKey(provider: AuthProvider, providerId: string): string {
-    return `${provider}:${providerId.toLowerCase()}`;
+  private isAvatarStillReferenced(assetUrl: string) {
+    return this.visitorProfiles.some((profile) => profile.avatarUrl === assetUrl) || this.organizerProfiles.some((profile) => profile.avatarUrl === assetUrl);
+  }
+
+  private getAccount(provider: AuthProvider, providerId: string): StoredAccount | undefined {
+    const normalizedProviderId = providerId.toLowerCase();
+    return this.accounts.find((account) => account.provider === provider && account.providerId.toLowerCase() === normalizedProviderId);
   }
 
   private normalizeEmail(email: string): string {

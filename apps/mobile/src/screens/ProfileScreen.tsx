@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 
+import { assetsApi } from "../api/assets";
+import { profileApi } from "../api/profile";
+import { ApiError } from "../api/client";
 import { EmptyStateBanner } from "../components/EmptyStateBanner";
 import { ScreenShell } from "../components/ScreenShell";
 import { StatusChip } from "../components/StatusChip";
 import { StickyActionBar } from "../components/StickyActionBar";
+import { useSessionStore } from "../state/session";
 import { OrganizerProfileSections } from "./profile/OrganizerProfileSections";
 import { VisitorProfileSections } from "./profile/VisitorProfileSections";
 import { palette, radii, spacing, typography } from "../theme/tokens";
@@ -18,13 +22,39 @@ type ProfileScreenProps = Readonly<{
   onLogout: () => void | Promise<void>;
 }>;
 
+type FeedbackState = Readonly<{
+  tone: "error" | "success";
+  message: string;
+}>;
+
+function getUploadErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Profile photo upload failed.";
+}
+
 export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: ProfileScreenProps) {
+  const setSessionEnvelope = useSessionStore((state) => state.setSessionEnvelope);
   const [showUploadBox, setShowUploadBox] = useState(false);
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarUri, setAvatarUri] = useState<string | null>(profile?.avatarUrl ?? null);
+  const [feedback, setFeedback] = useState<FeedbackState | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    setAvatarUri(profile?.avatarUrl ?? null);
+  }, [profile?.avatarUrl, profile?.id]);
 
   const openImagePicker = async () => {
+    setFeedback(null);
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
+      setFeedback({ tone: "error", message: "Photo library permission is required to upload an avatar." });
       return;
     }
 
@@ -35,13 +65,34 @@ export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: Profile
       quality: 0.9,
     });
 
-    if (!result.canceled && result.assets[0]?.uri) {
-      setAvatarUri(result.assets[0].uri);
+    const selectedAsset = result.canceled ? undefined : result.assets[0];
+    if (!selectedAsset?.uri) {
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const uploadedAsset = await assetsApi.uploadImage({
+        uri: selectedAsset.uri,
+        mimeType: selectedAsset.mimeType,
+        fileName: selectedAsset.fileName,
+        scope: "profile-avatar",
+        targetId: profile?.userId,
+      });
+      const nextSession = await profileApi.updateAvatar(uploadedAsset.url);
+      await setSessionEnvelope(nextSession);
+      setAvatarUri(uploadedAsset.url);
       setShowUploadBox(false);
+      setFeedback({ tone: "success", message: "Profile photo saved to Cloudflare R2." });
+    } catch (error) {
+      setFeedback({ tone: "error", message: getUploadErrorMessage(error) });
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const nextRoleLabel = role === "VISITOR" ? "Organizer" : "Visitor";
+  const resolvedAvatarUri = assetsApi.resolveAssetUrl(avatarUri ?? profile?.avatarUrl ?? null);
 
   if (!profile) {
     return (
@@ -72,8 +123,8 @@ export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: Profile
 
         <View style={styles.bioRow}>
           <Pressable style={styles.avatarFrame} onPress={() => setShowUploadBox((current) => !current)} accessibilityRole="button">
-            {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+            {resolvedAvatarUri ? (
+              <Image source={{ uri: resolvedAvatarUri }} style={styles.avatarImage} />
             ) : (
               <>
                 <Text style={styles.avatarPlus}>+</Text>
@@ -91,17 +142,19 @@ export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: Profile
         {showUploadBox ? (
           <View style={styles.uploadBox}>
             <Text style={styles.uploadTitle}>Upload profile photo</Text>
-            <Text style={styles.uploadText}>Choose an image from your photo library to use as your avatar.</Text>
+            <Text style={styles.uploadText}>Choose an image from your photo library to upload to Cloudflare R2 and use as your avatar.</Text>
             <View style={styles.uploadActions}>
-              <Pressable style={styles.uploadPrimaryButton} onPress={openImagePicker}>
-                <Text style={styles.uploadPrimaryButtonText}>Choose photo</Text>
+              <Pressable style={[styles.uploadPrimaryButton, isUploading && styles.buttonDisabled]} onPress={openImagePicker} disabled={isUploading}>
+                <Text style={styles.uploadPrimaryButtonText}>{isUploading ? "Uploading..." : "Choose photo"}</Text>
               </Pressable>
-              <Pressable style={styles.uploadSecondaryButton} onPress={() => setShowUploadBox(false)}>
+              <Pressable style={styles.uploadSecondaryButton} onPress={() => setShowUploadBox(false)} disabled={isUploading}>
                 <Text style={styles.uploadSecondaryButtonText}>Cancel</Text>
               </Pressable>
             </View>
           </View>
         ) : null}
+
+        {feedback ? <Text style={feedback.tone === "error" ? styles.errorText : styles.successText}>{feedback.message}</Text> : null}
 
         {profile.highlights.length > 0 ? (
           <>
@@ -150,7 +203,7 @@ export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: Profile
       {role === "ORGANIZER" ? <OrganizerProfileSections profile={profile} /> : null}
 
       <StickyActionBar
-        primaryLabel={`Switch to ${nextRoleLabel} workspace`}
+        primaryLabel={`Switch to ${nextRoleLabel}`}
         onPrimaryPress={() => {
           void onSwitchRole();
         }}
@@ -270,6 +323,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
   },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
   uploadPrimaryButtonText: {
     color: palette.background,
     fontFamily: typography.body,
@@ -289,6 +345,18 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 13,
     fontWeight: "700",
+  },
+  successText: {
+    color: palette.success,
+    fontFamily: typography.body,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  errorText: {
+    color: palette.accentStrong,
+    fontFamily: typography.body,
+    fontSize: 13,
+    lineHeight: 18,
   },
   interestRow: {
     flexDirection: "row",

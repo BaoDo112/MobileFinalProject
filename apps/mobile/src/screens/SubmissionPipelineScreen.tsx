@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { formatDistanceToNow, parseISO } from "date-fns";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { EmptyStateBanner } from "../components/EmptyStateBanner";
@@ -8,7 +7,7 @@ import { ScreenShell } from "../components/ScreenShell";
 import { StatusChip } from "../components/StatusChip";
 import { useSubmissionPipeline } from "../query/useSubmissionPipeline";
 import { palette, radii, spacing, typography } from "../theme/tokens";
-import type { ExhibitionQueueBoardDto, QueueCountsDto, QueueSessionWorkloadDto } from "../types/api";
+import type { QueueCountsDto } from "../types/api";
 import type { RegistrationStatus } from "../types/models";
 
 type SubmissionPipelineScreenProps = Readonly<{
@@ -25,18 +24,6 @@ const filterOptions: Array<Readonly<{ key: PipelineFilter; label: string }>> = [
   { key: "CHECKED_IN", label: "Checked-in" },
   { key: "REJECTED", label: "Rejected" },
 ];
-
-function formatStatusLabel(status: RegistrationStatus) {
-  return status.replace("_", " ").toLowerCase();
-}
-
-function formatSubmittedAt(value: string) {
-  try {
-    return formatDistanceToNow(parseISO(value), { addSuffix: true });
-  } catch {
-    return value;
-  }
-}
 
 function getFilterCount(statusCounts: QueueCountsDto, filter: PipelineFilter) {
   if (filter === "ALL") {
@@ -62,37 +49,9 @@ function getFilterCount(statusCounts: QueueCountsDto, filter: PipelineFilter) {
   return statusCounts.rejected;
 }
 
-function getStatusTone(status: RegistrationStatus): "neutral" | "success" | "warning" | "danger" {
-  if (status === "CHECKED_IN") {
-    return "success";
-  }
-
-  if (status === "REJECTED") {
-    return "danger";
-  }
-
-  if (status === "PENDING" || status === "WAITLISTED") {
-    return "warning";
-  }
-
-  return "neutral";
-}
-
-function getSessionTone(session: QueueSessionWorkloadDto): "neutral" | "success" | "warning" {
-  if (session.pendingCount > 0 || session.waitlistedCount > 0) {
-    return "warning";
-  }
-
-  if (session.checkedInCount > 0) {
-    return "success";
-  }
-
-  return "neutral";
-}
-
 function LoadingPipelineScreen() {
   return (
-    <ScreenShell title="Submission pipeline" subtitle="Loading live queue counts, waitlist pressure, and session workload from organizer registration data.">
+    <ScreenShell title="Submission pipeline" subtitle="Loading pipeline data.">
       <StatusChip label="Loading pipeline" tone="neutral" />
     </ScreenShell>
   );
@@ -100,97 +59,9 @@ function LoadingPipelineScreen() {
 
 function PipelineErrorScreen({ description, onRetry }: Readonly<{ description: string; onRetry: () => void }>) {
   return (
-    <ScreenShell title="Submission pipeline" subtitle="The organizer queue surface could not be restored.">
+    <ScreenShell title="Submission pipeline" subtitle="Pipeline data is unavailable.">
       <ErrorRecoveryPanel description={description} onRetry={onRetry} />
     </ScreenShell>
-  );
-}
-
-function SessionWorkloadPanel({ sessions }: Readonly<{ sessions: QueueSessionWorkloadDto[] }>) {
-  return (
-    <View style={styles.sectionStack}>
-      <Text style={styles.sectionTitle}>Session workload</Text>
-      <View style={styles.workloadGrid}>
-        {sessions.map((session) => (
-          <View key={session.sessionId} style={styles.metricCard}>
-            <View style={styles.workloadHeader}>
-              <Text style={styles.workloadTitle}>{session.sessionLabel}</Text>
-              <StatusChip label={`${session.reservedCount}/${session.capacity}`} tone={getSessionTone(session)} />
-            </View>
-            <Text style={styles.cardMeta}>{session.pendingCount} pending · {session.waitlistedCount} waitlist · {session.checkedInCount} checked-in</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function WaitlistSummaryPanel({ board }: Readonly<{ board: ExhibitionQueueBoardDto }>) {
-  if (board.waitlistSummary.length === 0) {
-    return null;
-  }
-
-  return (
-    <View style={styles.sectionStack}>
-      <Text style={styles.sectionTitle}>Waitlist pressure</Text>
-      {board.waitlistSummary.map((summary) => (
-        <View key={summary.sessionId} style={styles.metricCard}>
-          <Text style={styles.workloadTitle}>{summary.sessionLabel}</Text>
-          <Text style={styles.cardMeta}>{formatWaitlistSummary(summary.waitlistedCount, summary.remainingWaitlistCapacity)}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function formatWaitlistSummary(waitlistedCount: number, remainingWaitlistCapacity: number | undefined) {
-  if (remainingWaitlistCapacity === undefined) {
-    return `${waitlistedCount} waiting`;
-  }
-
-  return `${waitlistedCount} waiting · ${remainingWaitlistCapacity} slots left`;
-}
-
-function QueuePreviewList({
-  board,
-  selectedFilter,
-  onOpenSubmissions,
-}: Readonly<{
-  board: ExhibitionQueueBoardDto;
-  selectedFilter: PipelineFilter;
-  onOpenSubmissions: (exhibitionId: string) => void;
-}>) {
-  const visibleCards = board.queueCards.filter((card) => selectedFilter === "ALL" || card.status === selectedFilter).slice(0, 3);
-
-  if (visibleCards.length === 0) {
-    return (
-      <EmptyStateBanner
-        title="No queue cards in this filter"
-        description="Switch filters or open the review board to inspect the rest of this exhibition workload."
-        actionLabel="Open review board"
-        onAction={() => onOpenSubmissions(board.exhibitionId)}
-      />
-    );
-  }
-
-  return (
-    <View style={styles.sectionStack}>
-      <Text style={styles.sectionTitle}>Queue preview</Text>
-      {visibleCards.map((card) => (
-        <View key={card.registrationId} style={styles.metricCard}>
-          <View style={styles.workloadHeader}>
-            <Text style={styles.workloadTitle}>{card.attendeeName}</Text>
-            <StatusChip label={formatStatusLabel(card.status)} tone={getStatusTone(card.status)} />
-          </View>
-          <Text style={styles.cardMeta}>{card.sessionLabel}</Text>
-          <Text style={styles.cardMeta}>Submitted {formatSubmittedAt(card.submittedAt)}</Text>
-          {card.note ? <Text style={styles.queueNote}>{card.note}</Text> : null}
-        </View>
-      ))}
-      <Pressable style={styles.primaryButton} onPress={() => onOpenSubmissions(board.exhibitionId)}>
-        <Text style={styles.primaryButtonText}>Open review board</Text>
-      </Pressable>
-    </View>
   );
 }
 
@@ -220,15 +91,11 @@ export function SubmissionPipelineScreen({ onOpenSubmissions }: SubmissionPipeli
   }
 
   return (
-    <ScreenShell
-      eyebrow="Organizer flow"
-      title="Submission pipeline"
-      subtitle="Scan status counts, session pressure, and waitlist hotspots from the same registration model used by booking and dashboard."
-    >
+    <ScreenShell eyebrow="Organizer flow" title="Submission pipeline" subtitle="Scan queue counts fast.">
       <View style={styles.card}>
         <Text style={styles.metricLabel}>Queue operations</Text>
         <Text style={styles.metricValue}>{pipelineQuery.data.urgentQueueCount}</Text>
-        <Text style={styles.cardMeta}>Pending and waitlisted visitors are prioritized here so queue work stays visible before attendance and post-visit flows.</Text>
+        <Text style={styles.cardMeta}>Pending and waitlisted visitors stay at the front of the queue.</Text>
         <View style={styles.metricRow}>
           <StatusChip label={`${pipelineQuery.data.statusCounts.pending} pending`} tone={pipelineQuery.data.statusCounts.pending > 0 ? "warning" : "neutral"} />
           <StatusChip label={`${pipelineQuery.data.statusCounts.waitlisted} waitlist`} tone={pipelineQuery.data.statusCounts.waitlisted > 0 ? "warning" : "neutral"} />
@@ -253,7 +120,7 @@ export function SubmissionPipelineScreen({ onOpenSubmissions }: SubmissionPipeli
       {visibleBoards.length === 0 ? (
         <EmptyStateBanner
           title="No submissions in this filter"
-          description="Switch filters to review another queue stage. Once new registrations arrive, they will appear here automatically."
+          description="Switch filters to review another queue stage."
         />
       ) : null}
 
@@ -267,9 +134,9 @@ export function SubmissionPipelineScreen({ onOpenSubmissions }: SubmissionPipeli
             <StatusChip label={`${board.statusCounts.waitlisted} waitlist`} tone={board.statusCounts.waitlisted > 0 ? "warning" : "neutral"} />
             <StatusChip label={`${board.statusCounts.checkedIn} checked-in`} tone={board.statusCounts.checkedIn > 0 ? "success" : "neutral"} />
           </View>
-          <SessionWorkloadPanel sessions={board.sessionWorkload} />
-          <WaitlistSummaryPanel board={board} />
-          <QueuePreviewList board={board} selectedFilter={selectedFilter} onOpenSubmissions={onOpenSubmissions} />
+          <Pressable style={styles.primaryButton} onPress={() => onOpenSubmissions(board.exhibitionId)}>
+            <Text style={styles.primaryButtonText}>Open review board</Text>
+          </Pressable>
         </View>
       ))}
     </ScreenShell>
@@ -303,12 +170,6 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: spacing.sm
   },
-  metricCard: {
-    backgroundColor: palette.muted,
-    borderRadius: radii.md,
-    padding: spacing.sm,
-    gap: spacing.xs
-  },
   metricValue: {
     color: palette.text,
     fontFamily: typography.display,
@@ -322,53 +183,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase"
-  },
-  sectionStack: {
-    gap: spacing.sm,
-  },
-  sectionTitle: {
-    color: palette.text,
-    fontFamily: typography.body,
-    fontSize: 14,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  workloadGrid: {
-    gap: spacing.sm,
-  },
-  workloadHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  workloadTitle: {
-    flex: 1,
-    color: palette.text,
-    fontFamily: typography.body,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  queueNote: {
-    color: palette.text,
-    fontFamily: typography.body,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  primaryButton: {
-    alignSelf: "flex-start",
-    backgroundColor: palette.text,
-    borderRadius: radii.pill,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    alignItems: "center"
-  },
-  primaryButtonText: {
-    color: palette.background,
-    fontFamily: typography.body,
-    fontSize: 14,
-    fontWeight: "700"
   },
   filterRow: {
     flexDirection: "row",
@@ -392,5 +206,19 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: palette.background
+  },
+  primaryButton: {
+    alignSelf: "flex-start",
+    backgroundColor: palette.text,
+    borderRadius: radii.pill,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignItems: "center"
+  },
+  primaryButtonText: {
+    color: palette.background,
+    fontFamily: typography.body,
+    fontSize: 14,
+    fontWeight: "700"
   }
 });

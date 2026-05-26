@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+import { assetsApi } from "../api/assets";
 import { EmptyStateBanner } from "../components/EmptyStateBanner";
 import { ErrorRecoveryPanel } from "../components/ErrorRecoveryPanel";
 import { ScreenShell } from "../components/ScreenShell";
@@ -65,16 +66,19 @@ function FilterChipRow({ label, options, selectedValue, onSelect }: FilterChipRo
 }
 
 function DiscoverCard({ exhibition, onOpenGallery }: Readonly<{ exhibition: ExhibitionSummaryDto; onOpenGallery: (galleryId: string) => void }>) {
+  const heroImageUri = assetsApi.resolveAssetUrl(exhibition.heroImageUrl);
+
   return (
     <Pressable key={exhibition.id} onPress={() => onOpenGallery(exhibition.id)} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
       {({ pressed }) => (
         <>
           <View style={[styles.accentBar, { backgroundColor: exhibition.accent ?? palette.accent }]} />
           <View style={styles.cardImageSlot}>
+            {heroImageUri ? <Image source={{ uri: heroImageUri }} style={styles.cardImageBackground} /> : null}
             <View style={styles.cardImageOverlay} />
             <Text style={styles.cardImageLabel}>{exhibition.venueTitle ?? "Venue to be confirmed"}</Text>
             <View style={styles.cardImageEmpty}>
-              <Ionicons name="sparkles-outline" size={22} color={palette.textMuted} />
+              {heroImageUri ? null : <Ionicons name="sparkles-outline" size={22} color={palette.textMuted} />}
               <Text style={styles.cardImageEmptyText}>{exhibition.capacityBadge}</Text>
             </View>
           </View>
@@ -370,6 +374,13 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     justifyContent: "space-between",
     paddingBottom: spacing.md,
+  },
+  cardImageBackground: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
   cardImageOverlay: {
     ...StyleSheet.absoluteFillObject,

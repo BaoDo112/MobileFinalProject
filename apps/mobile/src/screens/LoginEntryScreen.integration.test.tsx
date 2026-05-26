@@ -111,4 +111,21 @@ describe("LoginEntryScreen", () => {
       });
     });
   });
+
+  it("continues with Google using the shared demo account when email is empty", async () => {
+    render(<LoginEntryScreen />);
+
+    fireEvent.press(screen.getByTestId("login-role-organizer"));
+    fireEvent.press(screen.getByTestId("login-google"));
+
+    await waitFor(() => {
+      expect(mockedAuthApi.continueWithGoogle).toHaveBeenCalledWith({
+        email: "demo.google@arthera.local",
+        name: "Demo Organizer",
+        role: "ORGANIZER",
+        providerId: "demo.google@arthera.local",
+      });
+    });
+    expect(mockSetSessionEnvelope).toHaveBeenCalledWith(sessionEnvelope);
+  });
 });

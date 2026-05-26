@@ -73,6 +73,7 @@ export interface VisitorProfile {
   id: string;
   userId: string;
   name: string;
+  avatarUrl?: string;
   fullName?: string;
   phoneNumber?: string;
   tagline?: string;
@@ -87,6 +88,7 @@ export interface OrganizerProfile {
   id: string;
   userId: string;
   name: string;
+  avatarUrl?: string;
   organizationName?: string;
   phoneNumber?: string;
   tagline?: string;
@@ -241,6 +243,15 @@ export interface NotificationSettingsDto {
   marketingOptIn: boolean;
 }
 
+export type AssetUploadScope = "profile-avatar" | "exhibition-media";
+
+export interface AssetUploadResponseDto {
+  key: string;
+  url: string;
+  fileName: string;
+  contentType?: string;
+}
+
 export interface AuthSessionEnvelope {
   token: string;
   user: User;
@@ -268,6 +279,7 @@ export interface ExhibitionSummaryDto {
   title: string;
   bio?: string;
   exhibitionType: string;
+  heroImageUrl?: string;
   status: ExhibitionStatus;
   timelineStatus: LegacyGalleryStatus;
   organizerName: string;

@@ -5,6 +5,8 @@ import { ScheduleModule } from "@nestjs/schedule";
 
 import { AuthController } from "./auth/auth.controller";
 import { AuthService } from "./auth/auth.service";
+import { AssetsController } from "./assets/assets.controller";
+import { AssetsService } from "./assets/assets.service";
 import { CommentsController } from "./comments/comments.controller";
 import { CommentsService } from "./comments/comments.service";
 import { DashboardController } from "./dashboard/dashboard.controller";
@@ -20,6 +22,8 @@ import { NotificationsController } from "./notifications/notifications.controlle
 import { NotificationsService } from "./notifications/notifications.service";
 import { PreferencesController } from "./preferences/preferences.controller";
 import { PreferencesService } from "./preferences/preferences.service";
+import { AppStateService } from "./persistence/app-state.service";
+import { PrismaService } from "./persistence/prisma.service";
 import { RegistrationsController } from "./registrations/registrations.controller";
 import { RegistrationsService } from "./registrations/registrations.service";
 import { ReviewsController } from "./reviews/reviews.controller";
@@ -48,6 +52,7 @@ import { VenuesService } from "./venues/venues.service";
   controllers: [
     HealthController,
     AuthController,
+    AssetsController,
     UsersController,
     RolesController,
     DashboardController,
@@ -64,7 +69,10 @@ import { VenuesService } from "./venues/venues.service";
     StampsController
   ],
   providers: [
+    PrismaService,
+    AppStateService,
     AuthService,
+    AssetsService,
     UsersService,
     RolesService,
     DashboardService,

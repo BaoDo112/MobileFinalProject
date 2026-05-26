@@ -81,6 +81,8 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 14,
     fontWeight: "700",
+    lineHeight: 20,
+    textAlign: "center",
   },
   secondaryButton: {
     flex: 1,
@@ -98,5 +100,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 14,
     fontWeight: "700",
+    lineHeight: 20,
+    textAlign: "center",
   },
 });

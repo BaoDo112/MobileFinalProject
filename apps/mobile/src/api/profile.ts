@@ -1,5 +1,11 @@
 import { apiClient } from "./client";
-import type { NotificationSettingsDto, OrganizerNotificationsDto, UpdateNotificationSettingsDto, VisitorWorkspaceDto } from "../types/api";
+import type {
+  AuthSessionEnvelope,
+  NotificationSettingsDto,
+  OrganizerNotificationsDto,
+  UpdateNotificationSettingsDto,
+  VisitorWorkspaceDto,
+} from "../types/api";
 
 export const profileApi = {
   getVisitorWorkspace(): Promise<VisitorWorkspaceDto> {
@@ -12,6 +18,10 @@ export const profileApi = {
 
   getOrganizerNotifications(): Promise<OrganizerNotificationsDto> {
     return apiClient.get<OrganizerNotificationsDto>("/notifications/me/organizer");
+  },
+
+  updateAvatar(avatarUrl: string): Promise<AuthSessionEnvelope> {
+    return apiClient.patch<AuthSessionEnvelope>("/users/me/avatar", { avatarUrl });
   },
 
   updateNotificationSettings(updates: UpdateNotificationSettingsDto): Promise<NotificationSettingsDto> {

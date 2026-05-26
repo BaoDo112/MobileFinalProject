@@ -1,7 +1,8 @@
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+import { assetsApi } from "../api/assets";
 import { EmptyStateBanner } from "../components/EmptyStateBanner";
 import { ErrorRecoveryPanel } from "../components/ErrorRecoveryPanel";
 import { ScreenShell } from "../components/ScreenShell";
@@ -172,6 +173,7 @@ export function GalleryDetailScreen({ galleryId, onOpenRegistration, onOpenRevie
   const primaryLabel = getPrimaryLabel(exhibition.registrationState);
   const mapPreviewAvailable = venue?.latitude !== undefined && venue?.longitude !== undefined;
   const canOpenMap = Boolean(venue?.address?.trim());
+  const heroImageUri = assetsApi.resolveAssetUrl(exhibition.heroImageUrl);
 
   const openMap = () => {
     if (!venue?.address) {
@@ -186,6 +188,7 @@ export function GalleryDetailScreen({ galleryId, onOpenRegistration, onOpenRevie
   return (
     <ScreenShell eyebrow="Visitor flow" title={exhibition.title} subtitle={exhibition.bio ?? curatorNote ?? "Review the venue, timing, and next attendance action before reserving."}>
       <View style={styles.heroCard}>
+        {heroImageUri ? <Image source={{ uri: heroImageUri }} style={styles.heroImage} /> : null}
         <View style={[styles.heroAccent, { backgroundColor: exhibition.accent ?? palette.accent }]} />
         <View style={styles.badgeRow}>
           <Text style={styles.typeBadge}>{exhibition.exhibitionType}</Text>
@@ -258,6 +261,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.sm,
     overflow: "hidden"
+  },
+  heroImage: {
+    height: 196,
+    marginHorizontal: -spacing.lg,
+    marginTop: -spacing.lg,
+    marginBottom: spacing.sm,
   },
   heroAccent: {
     position: "absolute",

@@ -1,38 +1,26 @@
 import { Injectable } from "@nestjs/common";
 
-import type { StampCardDto, StampProgressDto, StampSource, StampVaultSection, VisitorVisitSummaryDto } from "../common/contracts";
+import type { StampCardDto, StampProgressDto, StampVaultSection, VisitorVisitSummaryDto } from "../common/contracts";
 import { ExhibitionsService } from "../exhibitions/exhibitions.service";
-
-interface StampRecord {
-  id: string;
-  exhibitionId: string;
-  visitorId: string;
-  registrationId?: string;
-  source: StampSource;
-  vaultSection: StampVaultSection;
-  title: string;
-  milestone: string;
-  note?: string;
-  accent?: string;
-  unlockedAt: string;
-  dedupeKey: string;
-}
+import { AppStateService } from "../persistence/app-state.service";
+import type { StampRecord } from "../persistence/app-state.types";
 
 @Injectable()
 export class StampsService {
-  private readonly stamps: StampRecord[] = [];
+  constructor(
+    private readonly exhibitionsService: ExhibitionsService,
+    private readonly appState: AppStateService,
+  ) {}
 
-  constructor(private readonly exhibitionsService: ExhibitionsService) {}
-
-  issue(ownerId: string, galleryId: string, title: string, sourceRegistrationId?: string) {
+  async issue(ownerId: string, galleryId: string, title: string, sourceRegistrationId?: string): Promise<StampCardDto> {
     return this.issueAttendanceStamp(ownerId, galleryId, sourceRegistrationId, title);
   }
 
-  list(ownerId: string) {
+  list(ownerId: string): StampCardDto[] {
     return this.stamps.filter((stamp) => stamp.visitorId === ownerId).map((stamp) => this.toStampCard(stamp));
   }
 
-  issueAttendanceStamp(visitorId: string, exhibitionId: string, registrationId?: string, title?: string) {
+  async issueAttendanceStamp(visitorId: string, exhibitionId: string, registrationId?: string, title?: string): Promise<StampCardDto> {
     const summary = this.exhibitionsService.getSummary(exhibitionId);
 
     return this.issueStamp({
@@ -49,7 +37,7 @@ export class StampsService {
     });
   }
 
-  issueMilestoneStamp(visitorId: string, exhibitionId: string, milestoneKey: string) {
+  async issueMilestoneStamp(visitorId: string, exhibitionId: string, milestoneKey: string): Promise<StampCardDto> {
     const summary = this.exhibitionsService.getSummary(exhibitionId);
 
     return this.issueStamp({
@@ -112,7 +100,7 @@ export class StampsService {
     };
   }
 
-  private issueStamp(input: Omit<StampRecord, "id" | "unlockedAt">) {
+  private async issueStamp(input: Omit<StampRecord, "id" | "unlockedAt">): Promise<StampCardDto> {
     const existing = this.stamps.find((stamp) => stamp.dedupeKey === input.dedupeKey);
     if (existing) {
       return this.toStampCard(existing);
@@ -125,7 +113,12 @@ export class StampsService {
     };
 
     this.stamps.push(record);
+    await this.appState.persist();
     return this.toStampCard(record);
+  }
+
+  private get stamps() {
+    return this.appState.getState().stamps.records;
   }
 
   private toVisitCard(visit: VisitorVisitSummaryDto, vaultSection: StampVaultSection): StampCardDto {

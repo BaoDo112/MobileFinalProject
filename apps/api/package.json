@@ -12,9 +12,16 @@
     "test:integration": "jest --config ./jest.config.cjs --runInBand --testPathPattern=integration\\.spec\\.ts$",
     "test:smoke": "jest --config ./jest.config.cjs --runInBand --testPathPattern=v1_4_smoke\\.spec\\.ts$",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:push": "prisma db push",
+    "prisma:seed": "prisma db seed",
+    "prisma:bootstrap": "pnpm prisma:push && pnpm prisma:seed"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.916.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",

@@ -6,6 +6,11 @@ jest.mock("expo-secure-store", () => ({
   getItemAsync: jest.fn(),
 }));
 
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: { expoConfig: null },
+}));
+
 function createJsonResponse(body: unknown, status = 200) {
   return {
     ok: status >= 200 && status < 300,
@@ -38,7 +43,7 @@ describe("apiClient", () => {
 
     const [url, options] = jest.mocked(globalThis.fetch).mock.calls[0];
     const headers = options?.headers as Headers;
-    expect(url).toBe("http://localhost:3000/api/auth/login");
+    expect(url).toMatch(/\/api\/auth\/login$/);
     expect(options?.method).toBe("POST");
     expect(options?.body).toBe(JSON.stringify({ email: "visitor@example.com" }));
     expect(headers.get("Authorization")).toBe("Bearer session-token");

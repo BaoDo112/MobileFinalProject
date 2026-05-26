@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
@@ -25,7 +25,7 @@ import { StampVaultScreen } from "../screens/StampVaultScreen";
 import { SubmissionPipelineScreen } from "../screens/SubmissionPipelineScreen";
 import { SubmissionReviewScreen } from "../screens/SubmissionReviewScreen";
 import { useSessionStore } from "../state/session";
-import { palette, radii, spacing, typography } from "../theme/tokens";
+import { palette, typography } from "../theme/tokens";
 import type { OrganizerProfile, User, UserProfile, VisitorProfile } from "../types/models";
 
 type RootStackParamList = {
@@ -56,6 +56,9 @@ type OrganizerTabParamList = {
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const VisitorTabs = createBottomTabNavigator<VisitorTabParamList>();
 const OrganizerTabs = createBottomTabNavigator<OrganizerTabParamList>();
+const TAB_BAR_SIDE_MARGIN = 28;
+const TAB_BAR_HEIGHT = 72;
+const TAB_BAR_ITEM_HEIGHT = 58;
 
 type TabIconProps = Readonly<{
   color: string;
@@ -75,72 +78,62 @@ const navigationTheme = {
   },
 };
 
-const sharedTabOptions = {
-  headerShown: false,
-  tabBarActiveTintColor: palette.text,
-  tabBarInactiveTintColor: palette.background,
-  tabBarStyle: {
-    backgroundColor: palette.text,
-    borderTopWidth: 0,
-    height: 72,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.xs,
-  },
-  tabBarItemStyle: {
-    borderRadius: radii.pill,
-    marginHorizontal: spacing.xxs,
-    marginVertical: spacing.xxs,
-  },
-  tabBarActiveBackgroundColor: palette.backgroundAlt,
-  tabBarLabelStyle: {
-    fontFamily: typography.body,
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-  },
-} as const;
-
 const visitorTabOptions = {
   headerShown: false,
   tabBarActiveTintColor: palette.background,
   tabBarInactiveTintColor: palette.backgroundAlt,
   tabBarShowLabel: true,
+  tabBarHideOnKeyboard: true,
   tabBarStyle: {
     position: "absolute",
     bottom: 0,
-    left: 19.5,
-    right: 19.5,
-    height: 56,
+    left: TAB_BAR_SIDE_MARGIN,
+    right: TAB_BAR_SIDE_MARGIN,
+    height: TAB_BAR_HEIGHT,
     borderRadius: 9999,
     backgroundColor: "transparent",
     borderTopWidth: 0,
     elevation: 0,
-    shadowOpacity: 0,
-    overflow: "hidden",
+    ...(Platform.OS === "web" ? { boxShadow: "none" } : { shadowOpacity: 0 }),
   },
   tabBarBackground: () => (
-    <View style={{ flex: 1, borderRadius: 9999, overflow: "hidden", backgroundColor: "rgba(41, 37, 36, 0.72)" }}>
-      <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(41, 37, 36, 0.2)" }} />
+    <View style={styles.tabBarBackground}>
+      <View style={styles.tabBarBackgroundTint} />
     </View>
   ),
   tabBarItemStyle: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: TAB_BAR_ITEM_HEIGHT,
     borderRadius: 9999,
-    marginVertical: 2,
-    marginHorizontal: 6,
+    marginVertical: 0,
+    marginHorizontal: 4,
     paddingVertical: 0,
+    paddingHorizontal: 0,
+    justifyContent: "center",
+    alignItems: "center",
     overflow: "hidden",
   },
   tabBarActiveBackgroundColor: palette.accent,
   tabBarIconStyle: {
-    marginBottom: -2,
+    marginBottom: -1,
   },
   tabBarLabelStyle: {
     fontFamily: typography.body,
     fontSize: 10,
     fontWeight: "700",
     marginTop: 0,
-    lineHeight: 11,
+    marginBottom: 0,
+    lineHeight: 10,
+    textAlign: "center",
   },
+} as const;
+
+const organizerTabOptions = {
+  ...visitorTabOptions,
+  tabBarActiveTintColor: palette.background,
+  tabBarInactiveTintColor: palette.backgroundAlt,
+  tabBarActiveBackgroundColor: palette.gold,
 } as const;
 
 function renderGalleryTabIcon({ color, focused }: TabIconProps) {
@@ -159,6 +152,14 @@ function renderProfileTabIcon({ color, focused }: TabIconProps) {
   return <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />;
 }
 
+function renderDashboardTabIcon({ color, focused }: TabIconProps) {
+  return <Ionicons name={focused ? "speedometer" : "speedometer-outline"} size={22} color={color} />;
+}
+
+function renderPipelineTabIcon({ color, focused }: TabIconProps) {
+  return <Ionicons name={focused ? "file-tray-full" : "file-tray-full-outline"} size={22} color={color} />;
+}
+
 function toVisitorProfileView(user: User | null, profile: VisitorProfile | null): UserProfile | null {
   if (!user) {
     return null;
@@ -168,6 +169,7 @@ function toVisitorProfileView(user: User | null, profile: VisitorProfile | null)
     id: profile?.id ?? `${user.id}-visitor`,
     userId: user.id,
     name: profile?.name ?? user.email.split("@")[0],
+    avatarUrl: profile?.avatarUrl,
     fullName: profile?.fullName ?? profile?.name ?? user.email,
     email: user.email,
     phoneNumber: profile?.phoneNumber,
@@ -194,6 +196,7 @@ function toOrganizerProfileView(user: User | null, profile: OrganizerProfile | n
     id: profile?.id ?? `${user.id}-organizer`,
     userId: user.id,
     name: profile?.name ?? user.email.split("@")[0],
+    avatarUrl: profile?.avatarUrl,
     fullName: profile?.organizationName ?? profile?.name ?? user.email,
     email: user.email,
     phoneNumber: profile?.phoneNumber,
@@ -229,30 +232,16 @@ function VisitorTabShell({
         ...visitorTabOptions,
         tabBarStyle: {
           ...visitorTabOptions.tabBarStyle,
-          bottom: insets.bottom + 8,
-          height: 56 + insets.bottom,
-          paddingTop: 2,
-          paddingBottom: 2,
-          justifyContent: "center",
-        },
-        tabBarItemStyle: {
-          ...visitorTabOptions.tabBarItemStyle,
-          flex: 1,
-          marginVertical: 1,
-          marginHorizontal: 2,
-          paddingVertical: 0,
-          paddingHorizontal: 8,
-          height: 54,
-          justifyContent: "center",
-          alignItems: "center",
+          bottom: insets.bottom > 0 ? insets.bottom : 24,
+          paddingTop: 6,
+          paddingBottom: 6,
+          paddingHorizontal: 10,
         },
         tabBarIconStyle: {
           marginBottom: -1,
         },
         tabBarLabelStyle: {
           ...visitorTabOptions.tabBarLabelStyle,
-          fontSize: 10,
-          lineHeight: 10,
           marginTop: 0,
           marginBottom: 0,
           textAlignVertical: "center",
@@ -316,9 +305,31 @@ function OrganizerTabShell({
   onLogout: () => void;
   profile: UserProfile | null;
 }>) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <OrganizerTabs.Navigator screenOptions={sharedTabOptions}>
-      <OrganizerTabs.Screen name="Dashboard" options={{ title: "Dashboard" }}>
+    <OrganizerTabs.Navigator
+      screenOptions={{
+        ...organizerTabOptions,
+        tabBarStyle: {
+          ...organizerTabOptions.tabBarStyle,
+          bottom: insets.bottom > 0 ? insets.bottom : 24,
+          paddingTop: 6,
+          paddingBottom: 6,
+          paddingHorizontal: 10,
+        },
+        tabBarIconStyle: {
+          marginBottom: -1,
+        },
+        tabBarLabelStyle: {
+          ...organizerTabOptions.tabBarLabelStyle,
+          marginTop: 0,
+          marginBottom: 0,
+          textAlignVertical: "center",
+        },
+      }}
+    >
+      <OrganizerTabs.Screen name="Dashboard" options={{ title: "Overview", tabBarIcon: renderDashboardTabIcon }}>
         {() => (
           <OrganizerDashboardScreen
             onCreateExhibition={onCreateExhibition}
@@ -328,12 +339,12 @@ function OrganizerTabShell({
           />
         )}
       </OrganizerTabs.Screen>
-      <OrganizerTabs.Screen name="Pipeline" options={{ title: "Pipeline" }}>
+      <OrganizerTabs.Screen name="Pipeline" options={{ title: "Queue", tabBarIcon: renderPipelineTabIcon }}>
         {() => (
           <SubmissionPipelineScreen onOpenSubmissions={onOpenSubmissions} />
         )}
       </OrganizerTabs.Screen>
-      <OrganizerTabs.Screen name="Profile" options={{ title: "Profile" }}>
+      <OrganizerTabs.Screen name="Profile" options={{ title: "Profile", tabBarIcon: renderProfileTabIcon }}>
         {() => <ProfileScreen role="ORGANIZER" profile={profile} onSwitchRole={onSwitchRole} onLogout={onLogout} />}
       </OrganizerTabs.Screen>
     </OrganizerTabs.Navigator>
@@ -517,3 +528,16 @@ export function AppNavigator() {
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBarBackground: {
+    flex: 1,
+    borderRadius: 9999,
+    overflow: "hidden",
+    backgroundColor: "rgba(41, 37, 36, 0.72)",
+  },
+  tabBarBackgroundTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(41, 37, 36, 0.2)",
+  },
+});

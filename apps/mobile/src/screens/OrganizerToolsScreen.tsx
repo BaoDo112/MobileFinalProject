@@ -3,8 +3,10 @@ import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, isValid, parse } from "date-fns";
+import * as ImagePicker from "expo-image-picker";
 import { z } from "zod";
 
+import { assetsApi } from "../api/assets";
 import { ApiError } from "../api/client";
 import { EmptyStateBanner } from "../components/EmptyStateBanner";
 import { ErrorRecoveryPanel } from "../components/ErrorRecoveryPanel";
@@ -296,6 +298,7 @@ function VenueAssignmentPanel({
   return (
     <View style={styles.panel}>
       <Text style={styles.sectionTitle}>Venue assignment</Text>
+      <Text style={styles.helper}>Choose from the shared venue catalog. Adding a new venue is not available in the organizer app yet.</Text>
       <Controller
         control={control}
         name="venueId"
@@ -425,6 +428,32 @@ function PublishChecklistPanel({ draft }: Readonly<{ draft: ExhibitionEditorDto 
   );
 }
 
+function MediaHighlightsPanel({
+  control,
+  editable,
+  onUploadMedia,
+  uploadingMedia,
+}: Readonly<{
+  control: ReturnType<typeof useForm<ExhibitionEditorFormValues>>["control"];
+  editable: boolean;
+  onUploadMedia: () => void | Promise<void>;
+  uploadingMedia: boolean;
+}>) {
+  return (
+    <View style={styles.panel}>
+      <Text style={styles.sectionTitle}>Media and highlights</Text>
+      {editable ? (
+        <Pressable style={styles.secondaryButton} onPress={onUploadMedia} disabled={uploadingMedia}>
+          <Text style={styles.secondaryButtonText}>{uploadingMedia ? "Uploading image..." : "Upload image from device"}</Text>
+        </Pressable>
+      ) : null}
+      <Text style={styles.helper}>Uploaded images are stored in Cloudflare R2 and appended to the draft media URL list automatically.</Text>
+      <ControlledInput control={control} editable={editable} label="Media URLs" name="mediaUrls" placeholder="One URL per line" multiline />
+      <ControlledInput control={control} editable={editable} label="Highlight list" name="highlightList" placeholder="One highlight per line" multiline />
+    </View>
+  );
+}
+
 function OrganizerEditorContent({
   append,
   control,
@@ -434,11 +463,13 @@ function OrganizerEditorContent({
   feedback,
   fields,
   onOpenFormBuilder,
+  onUploadMedia,
   onPublish,
   onSave,
   pendingAction,
   remove,
   resolvedExhibitionId,
+  uploadingMedia,
 }: Readonly<{
   append: ReturnType<typeof useFieldArray<ExhibitionEditorFormValues, "sessions">>["append"];
   control: ReturnType<typeof useForm<ExhibitionEditorFormValues>>["control"];
@@ -448,11 +479,13 @@ function OrganizerEditorContent({
   feedback: FeedbackState | null;
   fields: ReturnType<typeof useFieldArray<ExhibitionEditorFormValues, "sessions">>["fields"];
   onOpenFormBuilder?: (exhibitionId: string) => void;
+  onUploadMedia: () => void | Promise<void>;
   onPublish: () => void;
   onSave: () => void;
   pendingAction: boolean;
   remove: ReturnType<typeof useFieldArray<ExhibitionEditorFormValues, "sessions">>["remove"];
   resolvedExhibitionId?: string;
+  uploadingMedia: boolean;
 }>) {
   return (
     <ScreenShell
@@ -488,11 +521,7 @@ function OrganizerEditorContent({
 
       <SchedulePanel append={append} control={control} editable={editable} errors={errors} fields={fields} remove={remove} />
 
-      <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>Media and highlights</Text>
-        <ControlledInput control={control} editable={editable} label="Media URLs" name="mediaUrls" placeholder="One URL per line" multiline />
-        <ControlledInput control={control} editable={editable} label="Highlight list" name="highlightList" placeholder="One highlight per line" multiline />
-      </View>
+      <MediaHighlightsPanel control={control} editable={editable} onUploadMedia={onUploadMedia} uploadingMedia={uploadingMedia} />
 
       <RegistrationSchemaPanel draft={draft} onOpenFormBuilder={onOpenFormBuilder} resolvedExhibitionId={resolvedExhibitionId} />
 
@@ -519,13 +548,16 @@ export function OrganizerToolsScreen({ exhibitionId, onOpenFormBuilder }: Organi
 
   const {
     control,
+    getValues,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ExhibitionEditorFormValues>({
     resolver: zodResolver(editorSchema),
     defaultValues: emptyFormValues(),
   });
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -578,6 +610,45 @@ export function OrganizerToolsScreen({ exhibitionId, onOpenFormBuilder }: Organi
   const editable = !draft.isLocked;
   const pendingAction = isSubmitting || saveDraftMutation.isPending || publishMutation.isPending;
 
+  const uploadMedia = async () => {
+    setFeedback(null);
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setFeedback({ tone: "error", message: "Photo library permission is required to upload exhibition media." });
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      quality: 0.9,
+    });
+
+    const selectedAsset = result.canceled ? undefined : result.assets[0];
+    if (!selectedAsset?.uri) {
+      return;
+    }
+
+    setIsUploadingMedia(true);
+    try {
+      const uploadedAsset = await assetsApi.uploadImage({
+        uri: selectedAsset.uri,
+        mimeType: selectedAsset.mimeType,
+        fileName: selectedAsset.fileName,
+        scope: "exhibition-media",
+        targetId: resolvedExhibitionId,
+      });
+      const currentValue = getValues("mediaUrls").trim();
+      const nextValue = [currentValue, uploadedAsset.url].filter((value) => value.length > 0).join("\n");
+      setValue("mediaUrls", nextValue, { shouldDirty: true, shouldValidate: true });
+      setFeedback({ tone: "success", message: "Image uploaded to Cloudflare R2 and added to this draft." });
+    } catch (error) {
+      setFeedback({ tone: "error", message: getActionErrorMessage(error) });
+    } finally {
+      setIsUploadingMedia(false);
+    }
+  };
+
   return (
     <OrganizerEditorContent
       append={append}
@@ -588,6 +659,9 @@ export function OrganizerToolsScreen({ exhibitionId, onOpenFormBuilder }: Organi
       feedback={feedback}
       fields={fields}
       onOpenFormBuilder={onOpenFormBuilder}
+      onUploadMedia={() => {
+        uploadMedia().catch(() => undefined);
+      }}
       onPublish={() => {
         submitPublish().catch(() => undefined);
       }}
@@ -597,6 +671,7 @@ export function OrganizerToolsScreen({ exhibitionId, onOpenFormBuilder }: Organi
       pendingAction={pendingAction}
       remove={remove}
       resolvedExhibitionId={resolvedExhibitionId}
+      uploadingMedia={isUploadingMedia}
     />
   );
 }

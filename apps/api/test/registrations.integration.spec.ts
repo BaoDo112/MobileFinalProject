@@ -218,6 +218,25 @@ describe("Phase 2 registration integration", () => {
     );
   });
 
+  it("keeps archive review available even when the schema is not fully valid", async () => {
+    const review = await request(app.getHttpServer())
+      .get("/api/registrations/organizer/review")
+      .set("Authorization", `Bearer ${organizerToken}`)
+      .query({ exhibitionId: "g-03" })
+      .expect(200);
+
+    expect(review.body).toEqual(
+      expect.objectContaining({
+        exhibitionId: "g-03",
+        selectedSubmission: expect.objectContaining({
+          registrationId: "seed-reg-05",
+          status: "REJECTED",
+          availableActions: expect.arrayContaining(["APPROVE", "WAITLIST"]),
+        }),
+      })
+    );
+  });
+
   it("supports organizer approve, waitlist, reject, and check-in actions", async () => {
     const approved = await request(app.getHttpServer())
       .patch("/api/registrations/seed-reg-03/decision")
