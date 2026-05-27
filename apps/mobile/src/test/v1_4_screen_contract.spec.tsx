@@ -745,7 +745,7 @@ describe("v1.4 screen contract smoke", () => {
       </View>
     );
 
-    expect(screen.getByText("Selected attendee")).toBeOnTheScreen();
+    expect(screen.getByText("Decision Actions")).toBeOnTheScreen();
 
     await waitFor(() => {
       expect(screen.getByText("Queue health")).toBeOnTheScreen();

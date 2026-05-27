@@ -85,7 +85,7 @@ describe("SubmissionReviewScreen", () => {
 
     render(<SubmissionReviewScreen exhibitionId="g-01" />);
 
-    expect(screen.getByText("Selected attendee")).toBeOnTheScreen();
+    expect(screen.getByText("Decision Actions")).toBeOnTheScreen();
     expect(screen.getByText("Email")).toBeOnTheScreen();
     expect(screen.getByText("Check in attendee")).toBeOnTheScreen();
 

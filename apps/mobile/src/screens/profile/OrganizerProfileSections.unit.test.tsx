@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import { render, screen, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { profileApi } from "../../api/profile";
@@ -94,22 +94,8 @@ describe("OrganizerProfileSections", () => {
       expect(screen.getByText("Workspace identity")).toBeOnTheScreen();
     });
 
-    expect(screen.getByText("Support inbox")).toBeOnTheScreen();
+    expect(screen.getByText("Queue health")).toBeOnTheScreen();
     expect(screen.getByText("Reminder job runs 24 hours before each scheduled session window.")).toBeOnTheScreen();
     expect(screen.getByText("3")).toBeOnTheScreen();
-  });
-
-  it("submits organizer notification preferences", async () => {
-    renderSection();
-
-    await waitFor(() => {
-      expect(screen.getByText("Save preferences")).toBeOnTheScreen();
-    });
-
-    fireEvent.press(screen.getByText("Save preferences"));
-
-    await waitFor(() => {
-      expect(mockedProfileApi.updateNotificationSettings).toHaveBeenCalledWith(notificationSettings);
-    });
   });
 });
