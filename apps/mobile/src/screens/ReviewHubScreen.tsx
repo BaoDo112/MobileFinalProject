@@ -68,7 +68,7 @@ function getReviewErrorMessage(error: unknown) {
 
 function LoadingReviewHubScreen() {
   return (
-    <ScreenShell eyebrow="Visitor flow" title="Review & comment" subtitle="Loading review eligibility, composer state, and public feedback.">
+    <ScreenShell>
       <StatusChip label="Loading review hub" tone="neutral" />
     </ScreenShell>
   );
@@ -76,7 +76,7 @@ function LoadingReviewHubScreen() {
 
 function ReviewHubErrorScreen({ description, onRetry }: Readonly<{ description: string; onRetry: () => void }>) {
   return (
-    <ScreenShell eyebrow="Visitor flow" title="Review & comment" subtitle="The post-visit review surface could not be restored.">
+    <ScreenShell>
       <ErrorRecoveryPanel description={description} onRetry={onRetry} />
     </ScreenShell>
   );
@@ -258,11 +258,7 @@ export function ReviewHubScreen({ exhibitionId }: ReviewHubScreenProps) {
   };
 
   return (
-    <ScreenShell
-      eyebrow="Visitor flow"
-      title="Review & comment"
-      subtitle="Post-visit feedback now follows the same attendance truth as queue check-in and stamp rewards."
-    >
+    <ScreenShell>
       <View style={styles.summaryCard}>
         <Text style={styles.kicker}>{hub.exhibitionTitle}</Text>
         <Text style={styles.heroTitle}>{hub.averageRatingLabel === "New" ? "New community rating" : `${hub.averageRatingLabel} community rating`}</Text>
@@ -280,16 +276,6 @@ export function ReviewHubScreen({ exhibitionId }: ReviewHubScreenProps) {
         error={saveReviewMutation.error}
         onSave={handleSave}
       />
-
-      <View style={styles.panel}>
-        <Text style={styles.sectionTitle}>Publishing notes</Text>
-        {hub.guidelines.map((guideline) => (
-          <View key={guideline} style={styles.guidelineRow}>
-            <View style={styles.guidelineDot} />
-            <Text style={styles.helper}>{guideline}</Text>
-          </View>
-        ))}
-      </View>
 
       {hub.composer.status === "PUBLISHED" ? (
         <View style={styles.successCard}>

@@ -157,10 +157,12 @@ export function DiscoverMapScreen({
               }}
             >
               <View style={[styles.markerFrame, isSelected && styles.markerFrameSelected]}>
-                <View style={[styles.markerPin, { backgroundColor: markerToneColor }]}>
-                  <Ionicons name="location-sharp" size={20} color={palette.background} style={styles.markerIcon} />
-                </View>
-                <View style={[styles.markerTip, { borderTopColor: markerToneColor }]} />
+                <Ionicons
+                  name="location-sharp"
+                  size={32}
+                  color={markerToneColor}
+                  style={styles.markerIcon}
+                />
               </View>
             </Marker>
           );
@@ -229,36 +231,30 @@ const styles = StyleSheet.create({
   },
   markerFrame: {
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 16,
-  },
-  markerFrameSelected: {
-    transform: [{ scale: 1.08 }],
-  },
-  markerPin: {
-    backgroundColor: palette.text,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
     justifyContent: "center",
-    borderWidth: 3,
-    borderColor: palette.background,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: palette.background,
+    borderWidth: 2,
+    borderColor: palette.backgroundAlt,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
   },
   markerIcon: {
-    marginTop: -1,
+    width: 32,
+    height: 32,
+    textAlign: "center",
+    lineHeight: 32,
   },
-
-  markerTip: {
-    width: 0,
-    height: 0,
-    marginTop: -2,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderTopWidth: 12,
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
+  markerFrameSelected: {
+    transform: [{ scale: 1.25 }],
+    borderColor: palette.text,
+    borderWidth: 3,
+    elevation: 12,
   },
   detailCardContainer: {
     position: "absolute",

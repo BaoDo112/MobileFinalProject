@@ -1,5 +1,4 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
 
 import { PrismaService } from "./prisma.service";
 import type { PersistedAppState } from "./app-state.types";
@@ -140,7 +139,7 @@ export class AppStateService implements OnModuleInit {
     return typeof candidate === "string" ? candidate : undefined;
   }
 
-  private normalizeState(value: Prisma.JsonValue): PersistedAppState {
+  private normalizeState(value: any): PersistedAppState {
     const seeded = buildRuntimeSeed(new Date());
     const candidate = (value ?? {}) as Partial<PersistedAppState>;
 
@@ -165,8 +164,8 @@ export class AppStateService implements OnModuleInit {
     };
   }
 
-  private serializeState(state: PersistedAppState): Prisma.InputJsonValue {
-    return structuredClone(state) as unknown as Prisma.InputJsonValue;
+  private serializeState(state: PersistedAppState): any {
+    return structuredClone(state) as any;
   }
 
   private normalizeAuthState(candidate: Partial<PersistedAppState["auth"]> | undefined, seeded: PersistedAppState["auth"]) {
