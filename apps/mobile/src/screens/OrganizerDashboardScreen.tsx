@@ -73,7 +73,7 @@ export function OrganizerDashboardScreen({
 
   if (dashboardQuery.isLoading) {
     return (
-      <ScreenShell title="Organizer Dashboard" subtitle="Loading dashboard data.">
+      <ScreenShell>
         <StatusChip label="Loading dashboard" tone="neutral" />
       </ScreenShell>
     );
@@ -81,7 +81,7 @@ export function OrganizerDashboardScreen({
 
   if (dashboardQuery.isError || !dashboardQuery.data) {
     return (
-      <ScreenShell title="Organizer Dashboard" subtitle="Dashboard data is unavailable.">
+      <ScreenShell>
         <ErrorRecoveryPanel
           description={dashboardQuery.error instanceof Error ? dashboardQuery.error.message : "Organizer dashboard could not be loaded."}
           onRetry={() => dashboardQuery.refetch()}
@@ -91,7 +91,7 @@ export function OrganizerDashboardScreen({
   }
 
   return (
-    <ScreenShell title="Organizer Dashboard" subtitle="Monitor queue load, sessions, and quick actions in one place.">
+    <ScreenShell>
       <View style={styles.heroCard}>
         <Text style={styles.kicker}>Command center</Text>
         <Text style={styles.heroTitle}>{getHeroCopy(dashboardQuery.data)}</Text>

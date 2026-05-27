@@ -15,24 +15,68 @@ import MapView, { Marker } from "./MapComponent";
 const markerShadowStyle = Platform.OS === "web"
   ? { boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.2)" }
   : {
-      shadowColor: "#000",
-      shadowOpacity: 0.2,
-      shadowRadius: 4,
-      shadowOffset: { width: 0, height: 2 } as const,
-    };
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 } as const,
+  };
 
 const detailCardShadowStyle = Platform.OS === "web"
   ? { boxShadow: "0px 10px 20px rgba(0, 0, 0, 0.1)" }
   : {
-      shadowColor: "#000",
-      shadowOpacity: 0.1,
-      shadowRadius: 20,
-      shadowOffset: { width: 0, height: 10 } as const,
-    };
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 } as const,
+  };
 
 type DiscoverMapScreenProps = Readonly<{
   onOpenGallery: (id: string) => void;
 }>;
+
+function resolveMarkerCoordinate(
+  gallery: ExhibitionSummaryDto,
+  index: number,
+  fallbackRegion?: { latitude: number; longitude: number },
+) {
+  if (typeof gallery.latitude === "number" && typeof gallery.longitude === "number") {
+    return {
+      latitude: gallery.latitude,
+      longitude: gallery.longitude,
+    };
+  }
+
+  if (!fallbackRegion) {
+    return undefined;
+  }
+
+  const latitudeOffset = (index % 4) * 0.006 - 0.009;
+  const longitudeOffset = Math.floor(index / 4) * 0.008 - 0.008;
+
+  return {
+    latitude: fallbackRegion.latitude + latitudeOffset,
+    longitude: fallbackRegion.longitude + longitudeOffset,
+  };
+}
+
+function resolveMarkerToneColor(
+  timelineStatus: ExhibitionSummaryDto["timelineStatus"],
+  isSelected: boolean,
+) {
+  if (isSelected) {
+    return palette.accent;
+  }
+
+  if (timelineStatus === "PRESENT") {
+    return palette.success;
+  }
+
+  if (timelineStatus === "FUTURE") {
+    return palette.warning;
+  }
+
+  return palette.textMuted;
+}
 
 export function DiscoverMapScreen({
   onOpenGallery,
@@ -88,28 +132,24 @@ export function DiscoverMapScreen({
 
   return (
     <View style={styles.container}>
-      <MapView 
-        style={styles.map} 
+      <MapView
+        style={styles.map}
         initialRegion={initialRegion}
         onPress={clearSelection}
       >
         {galleries.map((gallery, index) => {
-          const lat = initialRegion ? initialRegion.latitude + (index * 0.01) - 0.005 : 0;
-          const lng = initialRegion ? initialRegion.longitude + (index * 0.01) - 0.005 : 0;
-          
-          const isSelected = selectedGallery?.id === gallery.id;
-          let markerStyle: typeof styles.markerBodyPast | typeof styles.markerBodyLive | typeof styles.markerBodyUpcoming = styles.markerBodyPast;
-
-          if (gallery.timelineStatus === "PRESENT") {
-            markerStyle = styles.markerBodyLive;
-          } else if (gallery.timelineStatus === "FUTURE") {
-            markerStyle = styles.markerBodyUpcoming;
+          const coordinate = resolveMarkerCoordinate(gallery, index, initialRegion);
+          if (!coordinate) {
+            return null;
           }
-          
+
+          const isSelected = selectedGallery?.id === gallery.id;
+          const markerToneColor = resolveMarkerToneColor(gallery.timelineStatus, isSelected);
+
           return (
             <Marker
               key={gallery.id}
-              coordinate={{ latitude: lat, longitude: lng }}
+              coordinate={coordinate}
               anchor={{ x: 0.5, y: 1 }}
               onPress={(e: any) => {
                 e.stopPropagation();
@@ -117,10 +157,10 @@ export function DiscoverMapScreen({
               }}
             >
               <View style={[styles.markerFrame, isSelected && styles.markerFrameSelected]}>
-                <View style={[styles.markerPin, markerStyle, isSelected && styles.markerPinSelected]}>
+                <View style={[styles.markerPin, { backgroundColor: markerToneColor }]}>
                   <Ionicons name="location-sharp" size={20} color={palette.background} style={styles.markerIcon} />
                 </View>
-                <View style={[styles.markerTip, markerStyle, isSelected && styles.markerPinSelected]} />
+                <View style={[styles.markerTip, { borderTopColor: markerToneColor }]} />
               </View>
             </Marker>
           );
@@ -140,12 +180,12 @@ export function DiscoverMapScreen({
               )}
               <View style={styles.cardMeta}>
                 <Text style={styles.cardTitle} numberOfLines={1}>{selectedGallery.title}</Text>
-                  <Text style={styles.cardSub} numberOfLines={1}>{selectedGallery.dateLabel} • {selectedGallery.district}</Text>
+                <Text style={styles.cardSub} numberOfLines={1}>{selectedGallery.dateLabel} • {selectedGallery.district}</Text>
               </View>
             </View>
 
-            <TouchableOpacity 
-              style={styles.viewDetailBtn} 
+            <TouchableOpacity
+              style={styles.viewDetailBtn}
               onPress={() => onOpenGallery(selectedGallery.id)}
               activeOpacity={0.8}
             >
@@ -189,46 +229,36 @@ const styles = StyleSheet.create({
   },
   markerFrame: {
     alignItems: "center",
-    paddingHorizontal: 6,
-    paddingTop: 6,
-    paddingBottom: 14,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   markerFrameSelected: {
-    transform: [{ scale: 1.06 }],
+    transform: [{ scale: 1.08 }],
   },
   markerPin: {
     backgroundColor: palette.text,
-    width: 46,
-    height: 46,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: palette.background,
-    ...markerShadowStyle,
-    elevation: 4,
   },
   markerIcon: {
     marginTop: -1,
   },
-  markerBodyLive: {
-    backgroundColor: palette.success
-  },
-  markerBodyUpcoming: {
-    backgroundColor: palette.warning
-  },
-  markerBodyPast: {
-    backgroundColor: palette.textMuted
-  },
-  markerPinSelected: {
-    backgroundColor: palette.accent,
-  },
+
   markerTip: {
-    width: 16,
-    height: 16,
-    marginTop: -8,
-    borderBottomLeftRadius: 5,
-    transform: [{ rotate: "-45deg" }],
+    width: 0,
+    height: 0,
+    marginTop: -2,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 12,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
   },
   detailCardContainer: {
     position: "absolute",

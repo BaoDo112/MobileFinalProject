@@ -2,7 +2,6 @@ import { StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 
 import { profileApi } from "../../api/profile";
-import { EmptyStateBanner } from "../../components/EmptyStateBanner";
 import { ErrorRecoveryPanel } from "../../components/ErrorRecoveryPanel";
 import { StatusChip } from "../../components/StatusChip";
 import { palette, radii, spacing, typography } from "../../theme/tokens";
@@ -62,28 +61,7 @@ function QueueHealthSection({
   );
 }
 
-function SupportLinksSection({
-  supportLinks,
-}: Readonly<{
-  supportLinks: Array<Readonly<{ description?: string; label: string; url: string }>>;
-}>) {
-  return (
-    <View style={styles.sectionCard}>
-      <Text style={styles.sectionTitle}>Support links</Text>
-      {supportLinks.length === 0 ? (
-        <EmptyStateBanner title="No support links" description="Support metadata is not configured yet for this workspace." />
-      ) : (
-        supportLinks.map((link) => (
-          <View key={link.url} style={styles.supportCard}>
-            <Text style={styles.supportTitle}>{link.label}</Text>
-            <Text style={styles.supportDescription}>{link.description ?? link.url}</Text>
-            <Text style={styles.supportUrl}>{link.url}</Text>
-          </View>
-        ))
-      )}
-    </View>
-  );
-}
+
 
 export function OrganizerProfileSections({ profile }: OrganizerProfileSectionsProps) {
   const organizerNotificationsQuery = useQuery({
@@ -139,9 +117,6 @@ export function OrganizerProfileSections({ profile }: OrganizerProfileSectionsPr
         waitlisted={queueCounts.waitlisted}
       />
 
-
-
-      <SupportLinksSection supportLinks={organizerNotificationsQuery.data.supportLinks} />
     </>
   );
 }
@@ -207,22 +182,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",
-  },
-  supportCard: {
-    backgroundColor: palette.cardStrong,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    gap: spacing.xs,
-  },
-  supportTitle: {
-    color: palette.text,
-    fontFamily: typography.body,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  supportUrl: {
-    color: palette.accentStrong,
-    fontFamily: typography.mono,
-    fontSize: 12,
   },
 });

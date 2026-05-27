@@ -77,6 +77,7 @@ describe("OrganizerToolsScreen", () => {
       exhibitionId: "g-04",
       editorQuery: { data: draft, error: null, isLoading: false, refetch: jest.fn() },
       createDraftMutation: { data: undefined, error: null, isPending: false, mutate: jest.fn(), mutateAsync: jest.fn() },
+      createVenueMutation: { isPending: false, mutateAsync: jest.fn() },
       saveDraftMutation: { isPending: false, mutateAsync: jest.fn().mockResolvedValue(draft) },
       publishMutation: { isPending: false, mutateAsync: jest.fn().mockResolvedValue({ ...draft, status: "PUBLISHED" }) },
     });
@@ -84,6 +85,7 @@ describe("OrganizerToolsScreen", () => {
     render(<OrganizerToolsScreen exhibitionId="g-04" onOpenFormBuilder={onOpenFormBuilder} />);
 
     expect(screen.getByText("Signal Garden Draft")).toBeOnTheScreen();
+    expect(screen.getByText("Add venue")).toBeOnTheScreen();
     expect(screen.getByText("Open form builder")).toBeOnTheScreen();
     expect(screen.getByText("Save draft")).toBeOnTheScreen();
 

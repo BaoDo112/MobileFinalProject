@@ -1,5 +1,6 @@
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { EmptyStateBanner } from "../components/EmptyStateBanner";
 import { ErrorRecoveryPanel } from "../components/ErrorRecoveryPanel";
@@ -44,7 +45,7 @@ function formatUnlockedAt(value?: string) {
 
 function LoadingStampVaultScreen({ membershipLabel }: Readonly<{ membershipLabel?: string }>) {
   return (
-    <ScreenShell eyebrow="Visitor flow" title={membershipLabel ?? "Passport vault"} subtitle="Loading confirmed attendance, upcoming visits, and milestone progress.">
+    <ScreenShell>
       <StatusChip label="Loading vault" tone="neutral" />
     </ScreenShell>
   );
@@ -52,7 +53,7 @@ function LoadingStampVaultScreen({ membershipLabel }: Readonly<{ membershipLabel
 
 function StampVaultErrorScreen({ membershipLabel, description, onRetry }: Readonly<{ membershipLabel?: string; description: string; onRetry: () => void }>) {
   return (
-    <ScreenShell eyebrow="Visitor flow" title={membershipLabel ?? "Passport vault"} subtitle="The visitor progress vault could not be restored.">
+    <ScreenShell>
       <ErrorRecoveryPanel description={description} onRetry={onRetry} />
     </ScreenShell>
   );
@@ -78,11 +79,7 @@ export function StampVaultScreen({ profile, onOpenGallery }: StampVaultScreenPro
   const progress = progressQuery.data;
 
   return (
-    <ScreenShell
-      eyebrow="Visitor flow"
-      title={profile?.membershipLabel ?? "Passport tier"}
-      subtitle="Track confirmed attendance, queued visits, and milestone rewards from the same post-visit rules used by reviews and check-in."
-    >
+    <ScreenShell>
       <View style={styles.introBlock}>
         <Text style={styles.introTitle}>{progress.totalUnlocked} unlocked stamp{progress.totalUnlocked === 1 ? "" : "s"}</Text>
         <Text style={styles.introText}>
@@ -179,20 +176,17 @@ function renderStampCard(
 ) {
   const galleryId = stamp.exhibitionId;
   const accent = stamp.accent ?? palette.accent;
-  const logoText = stamp.title
-    .split(" ")
-    .filter(Boolean)
-    .map((word) => word[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
+  let iconName: keyof typeof Ionicons.glyphMap = "ticket-outline";
   let statusText = "Registered, expired";
 
   if (stamp.vaultSection === "CONFIRMED") {
     statusText = "Confirmed attendance";
+    iconName = "checkmark-done";
   } else if (stamp.vaultSection === "UPCOMING") {
     statusText = "Registered, upcoming";
+    iconName = "time-outline";
+  } else if (stamp.vaultSection === "EXPIRED") {
+    iconName = "close-circle-outline";
   }
 
   return (
@@ -204,7 +198,7 @@ function renderStampCard(
     >
       <View style={[styles.stampAccent, { backgroundColor: accent }]} />
       <View style={[styles.logoBox, { backgroundColor: accent }]}>
-        <Text style={styles.logoText}>{logoText}</Text>
+        <Ionicons name={iconName} size={28} color={palette.background} />
       </View>
       <View style={styles.cardHeaderRow}>
         <Text style={styles.cardTitle}>{stamp.title}</Text>
@@ -220,11 +214,13 @@ function renderStampCard(
 }
 
 function renderMilestoneCard(milestone: StampMilestoneDto) {
+  const iconName: keyof typeof Ionicons.glyphMap = milestone.unlocked ? "trophy" : "lock-closed";
+
   return (
     <View key={milestone.id} style={[styles.card, !milestone.unlocked && styles.expiredCard]}>
       <View style={[styles.stampAccent, { backgroundColor: milestone.accent ?? palette.accent }]} />
       <View style={[styles.logoBox, { backgroundColor: milestone.accent ?? palette.accent }]}>
-        <Text style={styles.logoText}>{milestone.title.slice(0, 2).toUpperCase()}</Text>
+        <Ionicons name={iconName} size={28} color={palette.background} />
       </View>
       <View style={styles.cardHeaderRow}>
         <Text style={styles.cardTitle}>{milestone.title}</Text>

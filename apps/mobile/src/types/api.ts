@@ -101,6 +101,8 @@ export interface ExhibitionSummaryDto {
   timeLabel: string;
   capacityBadge: string;
   registrationState: RegistrationCtaState;
+  latitude?: number;
+  longitude?: number;
   accent?: string;
 }
 
@@ -264,6 +266,17 @@ export interface VenueOptionDto {
   district: string;
   address: string;
   city?: string;
+}
+
+export interface CreateVenueDto {
+  title: string;
+  district: string;
+  address: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  mapUrl?: string;
+  accessibilityNotes?: string;
 }
 
 export interface AuthoringSessionDto {

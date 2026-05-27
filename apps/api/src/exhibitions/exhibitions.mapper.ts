@@ -212,6 +212,8 @@ export function toExhibitionSummary(
     timeLabel: formatTimeLabel(primarySession),
     capacityBadge: getCapacityBadge(primarySession),
     registrationState: primarySession?.registrationState ?? "closed",
+    latitude: venue?.latitude,
+    longitude: venue?.longitude,
     accent: exhibition.accent,
   };
 }

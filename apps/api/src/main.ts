@@ -1,8 +1,10 @@
 import { ValidationPipe } from "@nestjs/common";
-import { NestFactory } from "@nestjs/core";
+import { HttpAdapterHost, NestFactory } from "@nestjs/core";
 import type { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.interface";
 
 import { AppModule } from "./app.module";
+import { captureServerException, flushCapturedEvents } from "./instrument";
+import { SentryExceptionFilter } from "./sentry/sentry.filter";
 
 function parseAllowedOrigins(rawOrigins?: string) {
   return new Set(
@@ -34,6 +36,7 @@ function isLocalDevelopmentOrigin(origin: string) {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const { httpAdapter } = app.get(HttpAdapterHost);
   const allowedOrigins = parseAllowedOrigins(process.env.ALLOWED_ORIGINS);
   const isProduction = process.env.NODE_ENV === "production";
 
@@ -58,6 +61,7 @@ async function bootstrap() {
   app.enableCors(corsOptions);
 
   app.setGlobalPrefix("api");
+  app.useGlobalFilters(new SentryExceptionFilter(httpAdapter));
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -71,4 +75,9 @@ async function bootstrap() {
   console.log(`🚀 API listening on http://0.0.0.0:${port}`);
 }
 
-void bootstrap();
+void bootstrap().catch(async (error: unknown) => {
+  captureServerException(error);
+  await flushCapturedEvents();
+  console.error("API bootstrap failed", error);
+  process.exit(1);
+});

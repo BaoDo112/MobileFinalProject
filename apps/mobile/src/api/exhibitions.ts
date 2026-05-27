@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { ExhibitionDetailDto, ExhibitionEditorDto, ExhibitionSummaryDto, RegistrationCtaState, SaveExhibitionDraftDto } from "../types/api";
+import type { CreateVenueDto, ExhibitionDetailDto, ExhibitionEditorDto, ExhibitionSummaryDto, RegistrationCtaState, SaveExhibitionDraftDto } from "../types/api";
 import type { GalleryStatus } from "../types/models";
 
 export type DiscoverFilters = Readonly<{
@@ -45,5 +45,9 @@ export const exhibitionsApi = {
 
   listVenues() {
     return apiClient.get<ExhibitionEditorDto["availableVenues"]>("/venues");
+  },
+
+  createVenue(payload: CreateVenueDto) {
+    return apiClient.post<ExhibitionEditorDto["availableVenues"][number]>("/venues", payload);
   },
 };

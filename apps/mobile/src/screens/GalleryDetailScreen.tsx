@@ -11,6 +11,7 @@ import { useExhibitionDetail } from "../query/useExhibitionDetail";
 import { palette, radii, spacing, typography } from "../theme/tokens";
 import type { RegistrationCtaState, ReviewItemDto, SessionAvailabilityDto } from "../types/api";
 import type { Venue } from "../types/models";
+import MapView, { Marker } from "./MapComponent";
 
 type GalleryDetailScreenProps = Readonly<{
   galleryId: string;
@@ -90,6 +91,25 @@ function AddressSection({
     <>
       <Pressable onPress={canOpenMap ? onOpenMap : undefined} style={[styles.mapFrame, !mapPreviewAvailable && styles.mapFrameMuted]}>
         <View style={styles.mapFrameOverlay} />
+        {mapPreviewAvailable && MapView ? (
+          <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+            <MapView
+              style={StyleSheet.absoluteFillObject}
+              initialRegion={{
+                latitude: venue.latitude!,
+                longitude: venue.longitude!,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              }}
+              pitchEnabled={false}
+              rotateEnabled={false}
+              scrollEnabled={false}
+              zoomEnabled={false}
+            >
+              <Marker coordinate={{ latitude: venue.latitude!, longitude: venue.longitude! }} />
+            </MapView>
+          </View>
+        ) : null}
         <View style={styles.mapFrameBadge}>
           <Ionicons name="location-outline" size={16} color={palette.accent} />
           <Text style={styles.mapFrameBadgeText}>{mapPreviewAvailable ? "Map preview" : "Map fallback"}</Text>
@@ -103,7 +123,7 @@ function AddressSection({
       {venue.accessibilityNotes ? <Text style={styles.text}>{venue.accessibilityNotes}</Text> : null}
       {canOpenMap ? (
         <Pressable onPress={onOpenMap} style={styles.linkButton}>
-          <Text style={styles.linkButtonText}>Open in Google Maps</Text>
+          <Text style={styles.linkButtonText}>Open in Google Maps and navigate</Text>
         </Pressable>
       ) : null}
     </>
@@ -433,7 +453,7 @@ const styles = StyleSheet.create({
   },
   sessionCard: {
     backgroundColor: palette.muted,
-    borderRadius: radii.pill,
+    borderRadius: radii.md,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     gap: spacing.xs,

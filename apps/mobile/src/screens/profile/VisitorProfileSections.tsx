@@ -1,5 +1,4 @@
 import { StyleSheet, Text, View } from "react-native";
-import { EmptyStateBanner } from "../../components/EmptyStateBanner";
 import { ErrorRecoveryPanel } from "../../components/ErrorRecoveryPanel";
 import { StatusChip } from "../../components/StatusChip";
 import { useVisitorProfile } from "../../query/useVisitorProfile";
@@ -20,20 +19,27 @@ function VisitList({
   title: string;
   visits: VisitorVisitSummaryDto[];
 }>) {
-  if (!visits.length) {
-    return <EmptyStateBanner title={title} description={emptyDescription} />;
-  }
-
   return (
     <View style={styles.sectionCard}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      {visits.map((visit) => (
-        <View key={visit.registrationId} style={styles.visitCard}>
-          <Text style={styles.visitTitle}>{visit.exhibitionTitle}</Text>
-          <Text style={styles.visitMeta}>{visit.sessionLabel}</Text>
-          <StatusChip label={visit.status.toLowerCase()} tone={visit.status === "WAITLISTED" ? "warning" : "success"} />
+      {visits.length === 0 ? (
+        <Text style={styles.bodyCopy}>{emptyDescription}</Text>
+      ) : (
+        <View style={styles.listContainer}>
+          {visits.map((visit, index) => (
+            <View key={visit.registrationId}>
+              {index > 0 && <View style={styles.divider} />}
+              <View style={styles.visitRow}>
+                <View style={styles.visitInfo}>
+                  <Text style={styles.visitTitle}>{visit.exhibitionTitle}</Text>
+                  <Text style={styles.visitMeta}>{visit.sessionLabel}</Text>
+                </View>
+                <StatusChip label={visit.status.toLowerCase()} tone={visit.status === "WAITLISTED" ? "warning" : "success"} />
+              </View>
+            </View>
+          ))}
         </View>
-      ))}
+      )}
     </View>
   );
 }
@@ -82,24 +88,22 @@ export function VisitorProfileSections({ profile }: VisitorProfileSectionsProps)
         emptyDescription="Past attendance will appear here after checked-in sessions start syncing into the visitor timeline."
       />
 
-
-
-      {liveProfile?.accessibilityNotes?.trim() ? (
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Accessibility notes</Text>
-          <Text style={styles.bodyCopy}>{liveProfile.accessibilityNotes}</Text>
-        </View>
-      ) : (
-        <EmptyStateBanner
-          title="Accessibility notes missing"
-          description="This visitor profile has not saved accessibility details yet. Keep this explicit so organizers do not assume the profile is complete."
-        />
-      )}
-
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Membership snapshot</Text>
-        <Text style={styles.bodyCopy}>{liveProfile?.membershipLabel ?? profile.membershipLabel ?? "Member"}</Text>
-        <Text style={styles.preferenceDescription}>{liveProfile?.city ?? profile.city ?? "City not set"}</Text>
+        <Text style={styles.sectionTitle}>Account Details</Text>
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Membership</Text>
+          <Text style={styles.detailValue}>{liveProfile?.membershipLabel ?? profile.membershipLabel ?? "Member"}</Text>
+        </View>
+        <View style={styles.dividerDetail} />
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Location</Text>
+          <Text style={styles.detailValue}>{liveProfile?.city ?? profile.city ?? "City not set"}</Text>
+        </View>
+        <View style={styles.dividerDetail} />
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Accessibility</Text>
+          <Text style={styles.detailValue}>{liveProfile?.accessibilityNotes?.trim() ? liveProfile.accessibilityNotes : "Not configured"}</Text>
+        </View>
       </View>
     </>
   );
@@ -127,17 +131,29 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
-  visitCard: {
+  listContainer: {
+    gap: spacing.md,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: palette.border,
+    marginBottom: spacing.md,
+  },
+  visitRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  visitInfo: {
+    flex: 1,
     gap: spacing.xs,
-    backgroundColor: palette.cardStrong,
-    borderRadius: radii.md,
-    padding: spacing.md,
   },
   visitTitle: {
     color: palette.text,
     fontFamily: typography.display,
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: "700",
   },
   visitMeta: {
@@ -153,10 +169,33 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   bodyCopy: {
-    color: palette.text,
+    color: palette.textMuted,
     fontFamily: typography.body,
     fontSize: 14,
     lineHeight: 20,
   },
-
+  detailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  detailLabel: {
+    color: palette.text,
+    fontFamily: typography.body,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  detailValue: {
+    color: palette.textMuted,
+    fontFamily: typography.body,
+    fontSize: 14,
+    flex: 1,
+    textAlign: "right",
+  },
+  dividerDetail: {
+    height: 1,
+    backgroundColor: palette.border,
+    marginVertical: spacing.xs,
+  },
 });

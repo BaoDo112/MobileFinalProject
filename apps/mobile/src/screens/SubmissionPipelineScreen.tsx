@@ -51,7 +51,7 @@ function getFilterCount(statusCounts: QueueCountsDto, filter: PipelineFilter) {
 
 function LoadingPipelineScreen() {
   return (
-    <ScreenShell title="Submission pipeline" subtitle="Loading pipeline data.">
+    <ScreenShell>
       <StatusChip label="Loading pipeline" tone="neutral" />
     </ScreenShell>
   );
@@ -59,7 +59,7 @@ function LoadingPipelineScreen() {
 
 function PipelineErrorScreen({ description, onRetry }: Readonly<{ description: string; onRetry: () => void }>) {
   return (
-    <ScreenShell title="Submission pipeline" subtitle="Pipeline data is unavailable.">
+    <ScreenShell>
       <ErrorRecoveryPanel description={description} onRetry={onRetry} />
     </ScreenShell>
   );
@@ -91,7 +91,7 @@ export function SubmissionPipelineScreen({ onOpenSubmissions }: SubmissionPipeli
   }
 
   return (
-    <ScreenShell eyebrow="Organizer flow" title="Submission pipeline" subtitle="Scan queue counts fast.">
+    <ScreenShell>
       <View style={styles.card}>
         <Text style={styles.metricLabel}>Queue operations</Text>
         <Text style={styles.metricValue}>{pipelineQuery.data.urgentQueueCount}</Text>

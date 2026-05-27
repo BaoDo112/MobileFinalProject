@@ -594,6 +594,7 @@ describe("v1.4 screen contract smoke", () => {
       exhibitionId: "g-04",
       editorQuery: { data: editorDraft, error: null, isLoading: false, refetch: jest.fn() },
       createDraftMutation: { data: undefined, error: null, isPending: false, mutate: jest.fn(), mutateAsync: jest.fn() },
+      createVenueMutation: { isPending: false, mutateAsync: jest.fn() },
       saveDraftMutation: { isPending: false, mutateAsync: jest.fn().mockResolvedValue(editorDraft) },
       publishMutation: { isPending: false, mutateAsync: jest.fn().mockResolvedValue({ ...editorDraft, status: "PUBLISHED" }) },
     });
@@ -693,7 +694,7 @@ describe("v1.4 screen contract smoke", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Upcoming visits")).toBeOnTheScreen();
+      expect(screen.getByText("1 upcoming")).toBeOnTheScreen();
     });
   });
 

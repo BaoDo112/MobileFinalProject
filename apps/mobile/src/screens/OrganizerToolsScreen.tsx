@@ -15,7 +15,7 @@ import { StatusChip } from "../components/StatusChip";
 import { StickyActionBar } from "../components/StickyActionBar";
 import { useExhibitionEditor } from "../query/useExhibitionEditor";
 import { palette, radii, spacing, typography } from "../theme/tokens";
-import type { ExhibitionEditorDto, SaveExhibitionDraftDto } from "../types/api";
+import type { CreateVenueDto, ExhibitionEditorDto, SaveExhibitionDraftDto } from "../types/api";
 
 type OrganizerToolsScreenProps = Readonly<{
   exhibitionId?: string;
@@ -46,6 +46,15 @@ type ExhibitionEditorFormValues = {
   policyText: string;
   highlightList: string;
   sessions: SessionFormValue[];
+};
+
+type VenueComposerValues = {
+  title: string;
+  district: string;
+  address: string;
+  city: string;
+  latitude: string;
+  longitude: string;
 };
 
 const dateTimePattern = "yyyy-MM-dd HH:mm";
@@ -113,6 +122,39 @@ function emptyFormValues(): ExhibitionEditorFormValues {
     highlightList: "",
     sessions: [],
   };
+}
+
+function emptyVenueComposerValues(): VenueComposerValues {
+  return {
+    title: "",
+    district: "",
+    address: "",
+    city: "",
+    latitude: "",
+    longitude: "",
+  };
+}
+
+function parseOptionalCoordinate(value: string, label: "Latitude" | "Longitude") {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed)) {
+    throw new TypeError(`${label} must be a valid number.`);
+  }
+
+  if (label === "Latitude" && (parsed < -90 || parsed > 90)) {
+    throw new TypeError("Latitude must be between -90 and 90.");
+  }
+
+  if (label === "Longitude" && (parsed < -180 || parsed > 180)) {
+    throw new TypeError("Longitude must be between -180 and 180.");
+  }
+
+  return parsed;
 }
 
 function formatDateTimeValue(value: string) {
@@ -288,17 +330,31 @@ function EditorErrorScreen({ description, onRetry }: Readonly<{ description: str
 
 function VenueAssignmentPanel({
   control,
+  creatingVenue,
   draft,
   editable,
+  onCancelVenueComposer,
+  onCreateVenue,
+  onToggleVenueComposer,
+  onUpdateVenueComposer,
+  showVenueComposer,
+  venueComposer,
 }: Readonly<{
   control: ReturnType<typeof useForm<ExhibitionEditorFormValues>>["control"];
+  creatingVenue: boolean;
   draft: ExhibitionEditorDto;
   editable: boolean;
+  onCancelVenueComposer: () => void;
+  onCreateVenue: () => void;
+  onToggleVenueComposer: () => void;
+  onUpdateVenueComposer: (field: keyof VenueComposerValues, value: string) => void;
+  showVenueComposer: boolean;
+  venueComposer: VenueComposerValues;
 }>) {
   return (
     <View style={styles.panel}>
       <Text style={styles.sectionTitle}>Venue assignment</Text>
-      <Text style={styles.helper}>Choose from the shared venue catalog. Adding a new venue is not available in the organizer app yet.</Text>
+      <Text style={styles.helper}>Choose from the shared venue catalog, or add a new venue and use it immediately for this exhibition.</Text>
       <Controller
         control={control}
         name="venueId"
@@ -325,6 +381,97 @@ function VenueAssignmentPanel({
           </View>
         )}
       />
+      {editable ? (
+        <Pressable style={styles.secondaryButton} onPress={showVenueComposer ? onCancelVenueComposer : onToggleVenueComposer}>
+          <Text style={styles.secondaryButtonText}>{showVenueComposer ? "Close venue form" : "Add venue"}</Text>
+        </Pressable>
+      ) : null}
+      {showVenueComposer ? (
+        <View style={styles.venueComposer}>
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Venue title</Text>
+            <TextInput
+              value={venueComposer.title}
+              onChangeText={(value) => onUpdateVenueComposer("title", value)}
+              style={styles.input}
+              placeholder="Saigon Pearl Annex"
+              placeholderTextColor={palette.textMuted}
+            />
+          </View>
+          <View style={styles.sessionGrid}>
+            <View style={styles.sessionGridItem}>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>District</Text>
+                <TextInput
+                  value={venueComposer.district}
+                  onChangeText={(value) => onUpdateVenueComposer("district", value)}
+                  style={styles.input}
+                  placeholder="Binh Thanh"
+                  placeholderTextColor={palette.textMuted}
+                />
+              </View>
+            </View>
+            <View style={styles.sessionGridItem}>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>City</Text>
+                <TextInput
+                  value={venueComposer.city}
+                  onChangeText={(value) => onUpdateVenueComposer("city", value)}
+                  style={styles.input}
+                  placeholder="Ho Chi Minh City"
+                  placeholderTextColor={palette.textMuted}
+                />
+              </View>
+            </View>
+          </View>
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Address</Text>
+            <TextInput
+              value={venueComposer.address}
+              onChangeText={(value) => onUpdateVenueComposer("address", value)}
+              style={styles.input}
+              placeholder="92 Nguyen Huu Canh, Binh Thanh"
+              placeholderTextColor={palette.textMuted}
+            />
+          </View>
+          <View style={styles.sessionGrid}>
+            <View style={styles.sessionGridItem}>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Latitude</Text>
+                <TextInput
+                  value={venueComposer.latitude}
+                  onChangeText={(value) => onUpdateVenueComposer("latitude", value)}
+                  style={styles.input}
+                  placeholder="10.79"
+                  placeholderTextColor={palette.textMuted}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+            <View style={styles.sessionGridItem}>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Longitude</Text>
+                <TextInput
+                  value={venueComposer.longitude}
+                  onChangeText={(value) => onUpdateVenueComposer("longitude", value)}
+                  style={styles.input}
+                  placeholder="106.72"
+                  placeholderTextColor={palette.textMuted}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+          </View>
+          <View style={styles.inlineActionRow}>
+            <Pressable style={[styles.primaryButton, styles.inlineActionButton]} onPress={onCreateVenue} disabled={creatingVenue}>
+              <Text style={styles.primaryButtonText}>{creatingVenue ? "Saving venue..." : "Save venue"}</Text>
+            </Pressable>
+            <Pressable style={[styles.secondaryButtonCompact, styles.inlineActionButton]} onPress={onCancelVenueComposer} disabled={creatingVenue}>
+              <Text style={styles.secondaryButtonText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -457,35 +604,49 @@ function MediaHighlightsPanel({
 function OrganizerEditorContent({
   append,
   control,
+  creatingVenue,
   draft,
   editable,
   errors,
   feedback,
   fields,
+  onCancelVenueComposer,
+  onCreateVenue,
   onOpenFormBuilder,
+  onToggleVenueComposer,
   onUploadMedia,
+  onUpdateVenueComposer,
   onPublish,
   onSave,
   pendingAction,
   remove,
   resolvedExhibitionId,
+  showVenueComposer,
   uploadingMedia,
+  venueComposer,
 }: Readonly<{
   append: ReturnType<typeof useFieldArray<ExhibitionEditorFormValues, "sessions">>["append"];
   control: ReturnType<typeof useForm<ExhibitionEditorFormValues>>["control"];
+  creatingVenue: boolean;
   draft: ExhibitionEditorDto;
   editable: boolean;
   errors: ReturnType<typeof useForm<ExhibitionEditorFormValues>>["formState"]["errors"];
   feedback: FeedbackState | null;
   fields: ReturnType<typeof useFieldArray<ExhibitionEditorFormValues, "sessions">>["fields"];
+  onCancelVenueComposer: () => void;
+  onCreateVenue: () => void;
   onOpenFormBuilder?: (exhibitionId: string) => void;
+  onToggleVenueComposer: () => void;
   onUploadMedia: () => void | Promise<void>;
+  onUpdateVenueComposer: (field: keyof VenueComposerValues, value: string) => void;
   onPublish: () => void;
   onSave: () => void;
   pendingAction: boolean;
   remove: ReturnType<typeof useFieldArray<ExhibitionEditorFormValues, "sessions">>["remove"];
   resolvedExhibitionId?: string;
+  showVenueComposer: boolean;
   uploadingMedia: boolean;
+  venueComposer: VenueComposerValues;
 }>) {
   return (
     <ScreenShell
@@ -517,7 +678,18 @@ function OrganizerEditorContent({
         <ControlledInput control={control} editable={editable} label="Policy text" name="policyText" placeholder="Arrival and booking policy visible in detail/registration." multiline />
       </View>
 
-      <VenueAssignmentPanel control={control} draft={draft} editable={editable} />
+      <VenueAssignmentPanel
+        control={control}
+        creatingVenue={creatingVenue}
+        draft={draft}
+        editable={editable}
+        onCancelVenueComposer={onCancelVenueComposer}
+        onCreateVenue={onCreateVenue}
+        onToggleVenueComposer={onToggleVenueComposer}
+        onUpdateVenueComposer={onUpdateVenueComposer}
+        showVenueComposer={showVenueComposer}
+        venueComposer={venueComposer}
+      />
 
       <SchedulePanel append={append} control={control} editable={editable} errors={errors} fields={fields} remove={remove} />
 
@@ -542,8 +714,10 @@ function OrganizerEditorContent({
 }
 
 export function OrganizerToolsScreen({ exhibitionId, onOpenFormBuilder }: OrganizerToolsScreenProps) {
-  const { exhibitionId: resolvedExhibitionId, editorQuery, createDraftMutation, saveDraftMutation, publishMutation } = useExhibitionEditor(exhibitionId);
+  const { exhibitionId: resolvedExhibitionId, editorQuery, createDraftMutation, createVenueMutation, saveDraftMutation, publishMutation } = useExhibitionEditor(exhibitionId);
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
+  const [showVenueComposer, setShowVenueComposer] = useState(false);
+  const [venueComposer, setVenueComposer] = useState<VenueComposerValues>(emptyVenueComposerValues());
   const draft = editorQuery.data ?? createDraftMutation.data;
 
   const {
@@ -610,6 +784,41 @@ export function OrganizerToolsScreen({ exhibitionId, onOpenFormBuilder }: Organi
   const editable = !draft.isLocked;
   const pendingAction = isSubmitting || saveDraftMutation.isPending || publishMutation.isPending;
 
+  const createVenue = async () => {
+    const title = venueComposer.title.trim();
+    const district = venueComposer.district.trim();
+    const address = venueComposer.address.trim();
+    if (!title || !district || !address) {
+      setFeedback({ tone: "error", message: "Venue title, district, and address are required." });
+      return;
+    }
+
+    let payload: CreateVenueDto;
+    try {
+      payload = {
+        title,
+        district,
+        address,
+        city: venueComposer.city.trim() || undefined,
+        latitude: parseOptionalCoordinate(venueComposer.latitude, "Latitude"),
+        longitude: parseOptionalCoordinate(venueComposer.longitude, "Longitude"),
+      };
+    } catch (error) {
+      setFeedback({ tone: "error", message: getActionErrorMessage(error) });
+      return;
+    }
+
+    try {
+      const venue = await createVenueMutation.mutateAsync(payload);
+      setValue("venueId", venue.id, { shouldDirty: true, shouldValidate: true });
+      setShowVenueComposer(false);
+      setVenueComposer(emptyVenueComposerValues());
+      setFeedback({ tone: "success", message: `${venue.title} added and selected for this draft.` });
+    } catch (error) {
+      setFeedback({ tone: "error", message: getActionErrorMessage(error) });
+    }
+  };
+
   const uploadMedia = async () => {
     setFeedback(null);
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -653,14 +862,29 @@ export function OrganizerToolsScreen({ exhibitionId, onOpenFormBuilder }: Organi
     <OrganizerEditorContent
       append={append}
       control={control}
+      creatingVenue={createVenueMutation.isPending}
       draft={draft}
       editable={editable}
       errors={errors}
       feedback={feedback}
       fields={fields}
+      onCancelVenueComposer={() => {
+        setShowVenueComposer(false);
+        setVenueComposer(emptyVenueComposerValues());
+      }}
+      onCreateVenue={() => {
+        createVenue().catch(() => undefined);
+      }}
       onOpenFormBuilder={onOpenFormBuilder}
+      onToggleVenueComposer={() => setShowVenueComposer(true)}
       onUploadMedia={() => {
         uploadMedia().catch(() => undefined);
+      }}
+      onUpdateVenueComposer={(field, value) => {
+        setVenueComposer((current) => ({
+          ...current,
+          [field]: value,
+        }));
       }}
       onPublish={() => {
         submitPublish().catch(() => undefined);
@@ -671,7 +895,9 @@ export function OrganizerToolsScreen({ exhibitionId, onOpenFormBuilder }: Organi
       pendingAction={pendingAction}
       remove={remove}
       resolvedExhibitionId={resolvedExhibitionId}
+      showVenueComposer={showVenueComposer}
       uploadingMedia={isUploadingMedia}
+      venueComposer={venueComposer}
     />
   );
 }
@@ -786,6 +1012,10 @@ const styles = StyleSheet.create({
   venueGrid: {
     gap: spacing.sm,
   },
+  venueComposer: {
+    gap: spacing.sm,
+    paddingTop: spacing.xs,
+  },
   venueCard: {
     backgroundColor: palette.muted,
     borderRadius: radii.md,
@@ -845,6 +1075,21 @@ const styles = StyleSheet.create({
   },
   sessionGridItem: {
     flex: 1,
+  },
+  inlineActionRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  inlineActionButton: {
+    flex: 1,
+  },
+  secondaryButtonCompact: {
+    backgroundColor: palette.muted,
+    borderRadius: radii.pill,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
   },
   issueList: {
     gap: spacing.xs,

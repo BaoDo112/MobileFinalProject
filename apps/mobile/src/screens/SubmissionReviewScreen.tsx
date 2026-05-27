@@ -92,7 +92,7 @@ function getReviewErrorMessage(error: unknown) {
 
 function LoadingReviewScreen() {
   return (
-    <ScreenShell title="Submission review" subtitle="Loading queue detail, answers, and attendance actions from the organizer review API.">
+    <ScreenShell>
       <StatusChip label="Loading review board" tone="neutral" />
     </ScreenShell>
   );
@@ -100,7 +100,7 @@ function LoadingReviewScreen() {
 
 function ReviewErrorScreen({ description, onRetry }: Readonly<{ description: string; onRetry: () => void }>) {
   return (
-    <ScreenShell title="Submission review" subtitle="The organizer decision board could not be restored.">
+    <ScreenShell>
       <ErrorRecoveryPanel description={description} onRetry={onRetry} />
     </ScreenShell>
   );
@@ -150,32 +150,7 @@ function SubmissionCardsPanel({
   );
 }
 
-function SelectedSubmissionPanel({ selectedSubmission }: Readonly<{ selectedSubmission: NonNullable<SubmissionReviewDto["selectedSubmission"]> }>) {
-  return (
-    <View style={styles.panel}>
-      <Text style={styles.sectionTitle}>Selected attendee</Text>
-      <View style={styles.submissionHeader}>
-        <Text style={styles.detailTitle}>{selectedSubmission.attendeeName}</Text>
-        <StatusChip label={formatStatusLabel(selectedSubmission.status)} tone={getStatusTone(selectedSubmission.status)} />
-      </View>
-      <Text style={styles.helper}>{selectedSubmission.sessionLabel}</Text>
-      <Text style={styles.helper}>Submitted {formatRelativeLabel(selectedSubmission.submittedAt)}</Text>
-      {selectedSubmission.checkedInAt ? <Text style={styles.helper}>Checked in {formatRelativeLabel(selectedSubmission.checkedInAt)}</Text> : null}
-      {selectedSubmission.note ? <Text style={styles.helper}>{selectedSubmission.note}</Text> : null}
-      {selectedSubmission.stampNotice ? <Text style={styles.helper}>{selectedSubmission.stampNotice}</Text> : null}
-      <View style={styles.answerStack}>
-        {selectedSubmission.answers.map((answer) => (
-          <View key={`${selectedSubmission.registrationId}-${answer.label}`} style={styles.answerCard}>
-            <Text style={styles.answerLabel}>{answer.label}</Text>
-            <Text style={styles.answerValue}>{answer.value}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function DecisionActionsPanel({
+function SubmissionDetailPanel({
   selectedSubmission,
   pendingAction,
   isError,
@@ -189,40 +164,76 @@ function DecisionActionsPanel({
   onAction: (action: SubmissionDecisionAction) => void;
 }>) {
   return (
-    <View style={styles.panel}>
-      <Text style={styles.sectionTitle}>Decision actions</Text>
-      <Text style={styles.helper}>Actions stay on the same board so occupancy, waitlist pressure, and attendance remain synchronized.</Text>
-      <View style={styles.optionRow}>
-        {selectedSubmission.availableActions.map((action) => {
-          const tone = getActionTone(action);
+    <View style={styles.detailCard}>
+      <View style={styles.detailHeader}>
+        <View style={styles.detailTitleRow}>
+          <Text style={styles.detailTitle}>{selectedSubmission.attendeeName}</Text>
+          <StatusChip label={formatStatusLabel(selectedSubmission.status)} tone={getStatusTone(selectedSubmission.status)} />
+        </View>
+        <Text style={styles.detailMeta}>{selectedSubmission.sessionLabel}</Text>
+        <Text style={styles.detailMeta}>Submitted {formatRelativeLabel(selectedSubmission.submittedAt)}</Text>
+        {selectedSubmission.checkedInAt ? <Text style={styles.detailMeta}>Checked in {formatRelativeLabel(selectedSubmission.checkedInAt)}</Text> : null}
+      </View>
 
-          return (
-            <Pressable
-              key={action}
-              onPress={() => onAction(action)}
-              disabled={pendingAction !== null}
-              style={[
-                styles.statusChip,
-                tone === "primary" && styles.statusChipActive,
-                tone === "secondary" && styles.statusChipSecondary,
-                tone === "danger" && styles.statusChipDanger,
-                pendingAction !== null && styles.statusChipDisabled,
-              ]}
-            >
-              <Text
+      {selectedSubmission.note || selectedSubmission.stampNotice || selectedSubmission.answers.length > 0 ? (
+        <View style={styles.detailContent}>
+          {selectedSubmission.note ? (
+            <View style={styles.noteBlock}>
+              <Text style={styles.noteLabel}>Note</Text>
+              <Text style={styles.noteText}>{selectedSubmission.note}</Text>
+            </View>
+          ) : null}
+          {selectedSubmission.stampNotice ? (
+            <View style={styles.stampNoticeBlock}>
+              <Text style={styles.stampNoticeText}>{selectedSubmission.stampNotice}</Text>
+            </View>
+          ) : null}
+          
+          <View style={styles.answerStack}>
+            {selectedSubmission.answers.map((answer) => (
+              <View key={`${selectedSubmission.registrationId}-${answer.label}`} style={styles.answerRow}>
+                <Text style={styles.answerLabel}>{answer.label}</Text>
+                <Text style={styles.answerValue}>{answer.value}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      <View style={styles.detailActionsBlock}>
+        <Text style={styles.detailActionsTitle}>Decision Actions</Text>
+        <View style={styles.optionRow}>
+          {selectedSubmission.availableActions.map((action) => {
+            const tone = getActionTone(action);
+
+            return (
+              <Pressable
+                key={action}
+                onPress={() => onAction(action)}
+                disabled={pendingAction !== null}
                 style={[
-                  styles.statusChipText,
-                  tone === "primary" && styles.statusChipTextActive,
-                  tone === "danger" && styles.statusChipTextActive,
+                  styles.statusChip,
+                  tone === "primary" && styles.statusChipActive,
+                  tone === "secondary" && styles.statusChipSecondary,
+                  tone === "danger" && styles.statusChipDanger,
+                  pendingAction !== null && styles.statusChipDisabled,
                 ]}
               >
-                {pendingAction === action ? "Saving..." : getActionLabel(action)}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <Text
+                  style={[
+                    styles.statusChipText,
+                    tone === "primary" && styles.statusChipTextActive,
+                    tone === "danger" && styles.statusChipTextActive,
+                  ]}
+                >
+                  {pendingAction === action ? "Saving..." : getActionLabel(action)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {isError ? <Text style={styles.errorText}>{getReviewErrorMessage(error)}</Text> : null}
       </View>
-      {isError ? <Text style={styles.errorText}>{getReviewErrorMessage(error)}</Text> : null}
     </View>
   );
 }
@@ -246,11 +257,7 @@ export function SubmissionReviewScreen({ exhibitionId }: SubmissionReviewScreenP
 
   if (reviewQuery.data.queueCards.length === 0) {
     return (
-      <ScreenShell
-        eyebrow="Organizer flow"
-        title="Submission review"
-        subtitle="This exhibition has no live submissions yet, so there are no organizer decisions to make right now."
-      >
+      <ScreenShell>
         <EmptyStateBanner
           title="Queue is empty"
           description="Return to the pipeline to monitor other exhibitions, or wait for new registrations to enter this board."
@@ -275,11 +282,7 @@ export function SubmissionReviewScreen({ exhibitionId }: SubmissionReviewScreenP
   };
 
   return (
-    <ScreenShell
-      eyebrow="Organizer flow"
-      title="Submission review"
-      subtitle="Review one attendee at a time, then commit approval, waitlist, rejection, or attendance from the same live queue board."
-    >
+    <ScreenShell>
       <View style={styles.heroCard}>
         <Text style={styles.kicker}>{reviewQuery.data.exhibitionTitle}</Text>
         <Text style={styles.heroTitle}>{reviewQuery.data.queueCards.length} registrations in this board</Text>
@@ -291,18 +294,16 @@ export function SubmissionReviewScreen({ exhibitionId }: SubmissionReviewScreenP
         </View>
       </View>
 
+      <SessionWorkloadPanel sessions={reviewQuery.data.sessionWorkload} />
+
       <SubmissionCardsPanel
         queueCards={reviewQuery.data.queueCards}
         selectedRegistrationId={selectedRegistrationId}
         onSelect={setSelectedRegistrationId}
       />
 
-      <SessionWorkloadPanel sessions={reviewQuery.data.sessionWorkload} />
-
-      {selectedSubmission ? <SelectedSubmissionPanel selectedSubmission={selectedSubmission} /> : null}
-
       {selectedSubmission ? (
-        <DecisionActionsPanel
+        <SubmissionDetailPanel
           selectedSubmission={selectedSubmission}
           pendingAction={pendingAction}
           isError={updateDecisionMutation.isError}
@@ -458,5 +459,90 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 13,
     lineHeight: 18
-  }
+  },
+  detailCard: {
+    backgroundColor: palette.card,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: palette.border,
+    overflow: "hidden",
+    marginTop: spacing.md,
+  },
+  detailHeader: {
+    padding: spacing.md,
+    backgroundColor: palette.cardStrong,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: palette.border,
+  },
+  detailTitleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.xs,
+  },
+  detailMeta: {
+    color: palette.textMuted,
+    fontFamily: typography.body,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  detailContent: {
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  noteBlock: {
+    backgroundColor: palette.muted,
+    padding: spacing.sm,
+    borderRadius: radii.sm,
+  },
+  noteLabel: {
+    color: palette.textMuted,
+    fontFamily: typography.body,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  noteText: {
+    color: palette.text,
+    fontFamily: typography.body,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  stampNoticeBlock: {
+    backgroundColor: "rgba(111, 77, 103, 0.1)", // accent soft
+    padding: spacing.sm,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: "rgba(111, 77, 103, 0.2)",
+  },
+  stampNoticeText: {
+    color: palette.accent,
+    fontFamily: typography.body,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  answerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: spacing.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: palette.border,
+  },
+  detailActionsBlock: {
+    padding: spacing.md,
+    backgroundColor: palette.backgroundAlt,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: palette.border,
+    gap: spacing.md,
+  },
+  detailActionsTitle: {
+    color: palette.text,
+    fontFamily: typography.body,
+    fontSize: 14,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
 });

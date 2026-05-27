@@ -111,6 +111,17 @@ export interface Venue {
   updatedAt?: string;
 }
 
+export interface CreateVenueDto {
+  title: string;
+  district: string;
+  address: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  mapUrl?: string;
+  accessibilityNotes?: string;
+}
+
 export interface Exhibition {
   id: string;
   organizerId: string;
@@ -289,6 +300,8 @@ export interface ExhibitionSummaryDto {
   timeLabel: string;
   capacityBadge: string;
   registrationState: RegistrationCtaState;
+  latitude?: number;
+  longitude?: number;
   accent?: string;
 }
 

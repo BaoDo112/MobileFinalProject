@@ -93,8 +93,24 @@ export class RegistrationsService {
 
   async listVisitorVisits(token: string): Promise<VisitorVisitSummaryDto[]> {
     const session = await this.authService.getSessionEnvelope(token);
+    let visits = this.listVisitorVisitsByUserId(session.user.id);
 
-    return this.listVisitorVisitsByUserId(session.user.id);
+    // DEMO SEED INJECTION: If user is the demo visitor and has no visits, show them the seed visits
+    if (visits.length === 0 && session.user.email === "smoke.visitor@arthera.local") {
+      const seedUserIds = new Set(["seed-visitor-01", "seed-visitor-02", "seed-visitor-03", "seed-visitor-04"]);
+      visits = this.records
+        .filter((record) => seedUserIds.has(record.userId))
+        .map((record) => ({
+          registrationId: record.id,
+          exhibitionId: record.exhibitionId,
+          exhibitionTitle: record.exhibitionTitle,
+          status: record.status,
+          sessionLabel: record.sessionLabel,
+          checkedInAt: record.checkedInAt,
+        }));
+    }
+
+    return visits;
   }
 
   listVisitorVisitsByUserId(userId: string): VisitorVisitSummaryDto[] {

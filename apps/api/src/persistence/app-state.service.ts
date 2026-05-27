@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 
 import { PrismaService } from "./prisma.service";
@@ -17,8 +17,10 @@ function pickObject<T>(value: unknown, fallback: T): T {
 
 @Injectable()
 export class AppStateService implements OnModuleInit {
+  private readonly logger = new Logger(AppStateService.name);
   private state: PersistedAppState = buildRuntimeSeed(new Date());
   private readonly usePrisma: boolean;
+  private prismaHealthy = true;
   private persistChain: Promise<void> = Promise.resolve();
 
   constructor(private readonly prisma: PrismaService) {
@@ -31,22 +33,31 @@ export class AppStateService implements OnModuleInit {
       return;
     }
 
-    const existing = await this.prisma.runtimeState.findUnique({
-      where: { key: APP_STATE_KEY },
-    });
-
-    if (!existing) {
-      this.state = buildRuntimeSeed(new Date());
-      await this.prisma.runtimeState.create({
-        data: {
-          key: APP_STATE_KEY,
-          value: this.serializeState(this.state),
-        },
+    try {
+      const existing = await this.prisma.runtimeState.findUnique({
+        where: { key: APP_STATE_KEY },
       });
-      return;
-    }
 
-    this.state = this.normalizeState(existing.value);
+      if (!existing) {
+        this.state = buildRuntimeSeed(new Date());
+        await this.prisma.runtimeState.create({
+          data: {
+            key: APP_STATE_KEY,
+            value: this.serializeState(this.state),
+          },
+        });
+        return;
+      }
+
+      this.state = this.normalizeState(existing.value);
+    } catch (error) {
+      if (this.shouldFallbackToMemory(error)) {
+        this.markPrismaUnavailable("bootstrap runtime state", error);
+        return;
+      }
+
+      throw error;
+    }
   }
 
   getState(): PersistedAppState {
@@ -56,22 +67,77 @@ export class AppStateService implements OnModuleInit {
   async persist() {
     this.state.updatedAt = new Date().toISOString();
 
-    if (!this.usePrisma) {
+    if (!this.usePrisma || !this.prismaHealthy) {
       return;
     }
 
     this.persistChain = this.persistChain.then(async () => {
-      await this.prisma.runtimeState.upsert({
-        where: { key: APP_STATE_KEY },
-        update: { value: this.serializeState(this.state) },
-        create: {
-          key: APP_STATE_KEY,
-          value: this.serializeState(this.state),
-        },
-      });
+      try {
+        await this.prisma.runtimeState.upsert({
+          where: { key: APP_STATE_KEY },
+          update: { value: this.serializeState(this.state) },
+          create: {
+            key: APP_STATE_KEY,
+            value: this.serializeState(this.state),
+          },
+        });
+      } catch (error) {
+        if (this.shouldFallbackToMemory(error)) {
+          this.markPrismaUnavailable("persist runtime state", error);
+          return;
+        }
+
+        throw error;
+      }
     });
 
     await this.persistChain;
+  }
+
+  private shouldFallbackToMemory(error: unknown) {
+    const code = this.getErrorCode(error) ?? "";
+
+    if (code === "P1001" || code === "P1002" || code === "P1017") {
+      return true;
+    }
+
+    const message = this.getErrorMessage(error) ?? "";
+    return /can't reach database server|timed out|server has closed the connection/i.test(message);
+  }
+
+  private markPrismaUnavailable(action: string, error: unknown) {
+    if (this.prismaHealthy) {
+      const detail = this.getErrorMessage(error) ?? "Unknown Prisma error.";
+      this.logger.warn(`Prisma persistence unavailable while attempting to ${action}; continuing in memory. ${detail}`);
+    }
+
+    this.prismaHealthy = false;
+  }
+
+  private getErrorCode(error: unknown) {
+    if (!error || typeof error !== "object" || !("code" in error)) {
+      return undefined;
+    }
+
+    const candidate = (error as { code?: unknown }).code;
+    return typeof candidate === "string" ? candidate : undefined;
+  }
+
+  private getErrorMessage(error: unknown) {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    if (typeof error === "string") {
+      return error;
+    }
+
+    if (!error || typeof error !== "object" || !("message" in error)) {
+      return undefined;
+    }
+
+    const candidate = (error as { message?: unknown }).message;
+    return typeof candidate === "string" ? candidate : undefined;
   }
 
   private normalizeState(value: Prisma.JsonValue): PersistedAppState {

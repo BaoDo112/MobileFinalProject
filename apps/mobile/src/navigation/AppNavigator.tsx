@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, type ComponentProps } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -56,9 +56,10 @@ type OrganizerTabParamList = {
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const VisitorTabs = createBottomTabNavigator<VisitorTabParamList>();
 const OrganizerTabs = createBottomTabNavigator<OrganizerTabParamList>();
-const TAB_BAR_SIDE_MARGIN = 28;
+const TAB_BAR_SIDE_MARGIN = 34;
 const TAB_BAR_HEIGHT = 72;
 const TAB_BAR_ITEM_HEIGHT = 58;
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
 type TabIconProps = Readonly<{
   color: string;
@@ -112,9 +113,8 @@ const visitorTabOptions = {
     paddingHorizontal: 0,
     justifyContent: "center",
     alignItems: "center",
-    overflow: "hidden",
+    overflow: "visible",
   },
-  tabBarActiveBackgroundColor: palette.accent,
   tabBarIconStyle: {
     marginBottom: -1,
   },
@@ -133,31 +133,42 @@ const organizerTabOptions = {
   ...visitorTabOptions,
   tabBarActiveTintColor: palette.background,
   tabBarInactiveTintColor: palette.backgroundAlt,
-  tabBarActiveBackgroundColor: palette.gold,
 } as const;
 
-function renderGalleryTabIcon({ color, focused }: TabIconProps) {
-  return <Ionicons name={focused ? "grid" : "grid-outline"} size={22} color={color} />;
+function renderTabIcon({ color, focused }: TabIconProps, activeName: IoniconName, inactiveName: IoniconName, activeBadgeColor: string) {
+  return (
+    <View style={[styles.tabIconBadge, focused && { backgroundColor: activeBadgeColor }]}>
+      <Ionicons name={focused ? activeName : inactiveName} size={22} color={focused ? palette.background : color} />
+    </View>
+  );
 }
 
-function renderDiscoverTabIcon({ color, focused }: TabIconProps) {
-  return <Ionicons name={focused ? "compass" : "compass-outline"} size={22} color={color} />;
+function renderGalleryTabIcon(props: TabIconProps) {
+  return renderTabIcon(props, "grid", "grid-outline", palette.accent);
 }
 
-function renderVaultTabIcon({ color, focused }: TabIconProps) {
-  return <Ionicons name={focused ? "wallet" : "wallet-outline"} size={22} color={color} />;
+function renderDiscoverTabIcon(props: TabIconProps) {
+  return renderTabIcon(props, "compass", "compass-outline", palette.accent);
 }
 
-function renderProfileTabIcon({ color, focused }: TabIconProps) {
-  return <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />;
+function renderVaultTabIcon(props: TabIconProps) {
+  return renderTabIcon(props, "wallet", "wallet-outline", palette.accent);
 }
 
-function renderDashboardTabIcon({ color, focused }: TabIconProps) {
-  return <Ionicons name={focused ? "speedometer" : "speedometer-outline"} size={22} color={color} />;
+function renderProfileTabIcon(props: TabIconProps) {
+  return renderTabIcon(props, "person", "person-outline", palette.accent);
 }
 
-function renderPipelineTabIcon({ color, focused }: TabIconProps) {
-  return <Ionicons name={focused ? "file-tray-full" : "file-tray-full-outline"} size={22} color={color} />;
+function renderOrganizerProfileTabIcon(props: TabIconProps) {
+  return renderTabIcon(props, "person", "person-outline", palette.gold);
+}
+
+function renderDashboardTabIcon(props: TabIconProps) {
+  return renderTabIcon(props, "speedometer", "speedometer-outline", palette.gold);
+}
+
+function renderPipelineTabIcon(props: TabIconProps) {
+  return renderTabIcon(props, "file-tray-full", "file-tray-full-outline", palette.gold);
 }
 
 function toVisitorProfileView(user: User | null, profile: VisitorProfile | null): UserProfile | null {
@@ -344,7 +355,7 @@ function OrganizerTabShell({
           <SubmissionPipelineScreen onOpenSubmissions={onOpenSubmissions} />
         )}
       </OrganizerTabs.Screen>
-      <OrganizerTabs.Screen name="Profile" options={{ title: "Profile", tabBarIcon: renderProfileTabIcon }}>
+      <OrganizerTabs.Screen name="Profile" options={{ title: "Profile", tabBarIcon: renderOrganizerProfileTabIcon }}>
         {() => <ProfileScreen role="ORGANIZER" profile={profile} onSwitchRole={onSwitchRole} onLogout={onLogout} />}
       </OrganizerTabs.Screen>
     </OrganizerTabs.Navigator>
@@ -539,5 +550,12 @@ const styles = StyleSheet.create({
   tabBarBackgroundTint: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(41, 37, 36, 0.2)",
+  },
+  tabIconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

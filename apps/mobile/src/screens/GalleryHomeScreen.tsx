@@ -187,11 +187,7 @@ export function GalleryHomeScreen({ onOpenGallery }: GalleryHomeScreenProps) {
 
   if (catalogQuery.isLoading && !catalogQuery.data) {
     return (
-      <ScreenShell
-        title="Browse exhibition"
-        subtitle="Loading the live discover feed, timeline states, and venue availability."
-        headerVariant="dark"
-      >
+      <ScreenShell>
         <StatusChip label="Loading discover feed" tone="neutral" />
       </ScreenShell>
     );
@@ -199,22 +195,14 @@ export function GalleryHomeScreen({ onOpenGallery }: GalleryHomeScreenProps) {
 
   if (catalogQuery.isError && !catalogQuery.data) {
     return (
-      <ScreenShell
-        title="Browse exhibition"
-        subtitle="The discover feed could not be restored from the backend read model."
-        headerVariant="dark"
-      >
+      <ScreenShell>
         <ErrorRecoveryPanel description={catalogQuery.error instanceof Error ? catalogQuery.error.message : "Discover query failed."} onRetry={handleCatalogRetry} />
       </ScreenShell>
     );
   }
 
   return (
-    <ScreenShell
-      title="Browse exhibition"
-      subtitle="This week: build a route around one live show, one preview, and one archive replay. Timeline tabs, district/type filters, and curated cards keep the decision path simple without flattening the gallery mood."
-      headerVariant="dark"
-    >
+    <ScreenShell>
       <View style={styles.filterShell}>
         <Pressable style={styles.filterToggle} onPress={() => setFiltersOpen((value) => !value)}>
           <View style={styles.filterIconWrap}>

@@ -3,6 +3,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { AssetsService } from "../assets/assets.service";
 import type {
   AuthoringSessionDto,
+  CreateVenueDto,
   ExhibitionEditorDto,
   ExhibitionPayload,
   ReviewItemDto,
@@ -306,14 +307,29 @@ export class ExhibitionsService {
     return record;
   }
 
+  async createVenue(payload: CreateVenueDto): Promise<VenueOptionDto> {
+    const now = new Date().toISOString();
+    const venue: Venue = {
+      id: this.nextVenueId(),
+      title: payload.title.trim(),
+      district: payload.district.trim(),
+      address: payload.address.trim(),
+      city: payload.city?.trim() || undefined,
+      latitude: typeof payload.latitude === "number" ? payload.latitude : undefined,
+      longitude: typeof payload.longitude === "number" ? payload.longitude : undefined,
+      mapUrl: payload.mapUrl?.trim() || undefined,
+      accessibilityNotes: payload.accessibilityNotes?.trim() || undefined,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.venues.push(venue);
+    await this.appState.persist();
+    return this.toVenueOption(venue);
+  }
+
   listVenues(): VenueOptionDto[] {
-    return this.venues.map((venue) => ({
-      id: venue.id,
-      title: venue.title,
-      district: venue.district,
-      address: venue.address,
-      city: venue.city,
-    }));
+    return this.venues.map((venue) => this.toVenueOption(venue));
   }
 
   listByOrganizer(organizerId?: string) {
@@ -322,7 +338,13 @@ export class ExhibitionsService {
 
   listDiscover(filters: DiscoverFilters = {}) {
     return this.records
-      .filter((record) => !filters.organizerId || record.organizerId === filters.organizerId)
+      .filter((record) => {
+        if (filters.organizerId) {
+          return record.organizerId === filters.organizerId;
+        }
+
+        return record.status === "PUBLISHED" || record.status === "CLOSED";
+      })
       .map((record) => {
         const sessions = this.getSessions(record.id);
         const timeline = getDiscoverTimeline(record.status, sessions, new Date());
@@ -628,6 +650,25 @@ export class ExhibitionsService {
       .reduce((current, value) => Math.max(current, value), 0) + 1;
 
     return `g-${String(nextIndex).padStart(2, "0")}`;
+  }
+
+  private nextVenueId() {
+    const nextIndex = this.venues
+      .map((venue) => Number(venue.id.replace(/\D+/g, "")))
+      .filter((value) => Number.isFinite(value))
+      .reduce((current, value) => Math.max(current, value), 0) + 1;
+
+    return `v-${String(nextIndex).padStart(2, "0")}`;
+  }
+
+  private toVenueOption(venue: Venue): VenueOptionDto {
+    return {
+      id: venue.id,
+      title: venue.title,
+      district: venue.district,
+      address: venue.address,
+      city: venue.city,
+    };
   }
 
   private ensureEditable(record: ExhibitionRecord, isLocked: boolean, lockReason?: string) {

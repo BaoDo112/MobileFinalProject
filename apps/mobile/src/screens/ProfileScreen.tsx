@@ -111,11 +111,7 @@ export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: Profile
   }
 
   return (
-    <ScreenShell title={profile.name} subtitle={profile.tagline ?? "Workspace profile"}>
-      <View style={styles.statusRow}>
-        <StatusChip label={`${role.toLowerCase()} workspace`} tone={role === "VISITOR" ? "success" : "warning"} />
-        <StatusChip label="Session restored" tone="neutral" />
-      </View>
+    <ScreenShell>
 
       <View style={styles.profileCard}>
         <Text style={styles.cardLabel}>Name</Text>
@@ -218,11 +214,7 @@ export function ProfileScreen({ role, profile, onSwitchRole, onLogout }: Profile
 }
 
 const styles = StyleSheet.create({
-  statusRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
+
   profileCard: {
     backgroundColor: palette.cardStrong,
     borderRadius: radii.lg,

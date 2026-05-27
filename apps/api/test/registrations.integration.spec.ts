@@ -292,4 +292,129 @@ describe("Phase 2 registration integration", () => {
       })
     );
   });
+
+  it("lets organizers publish a new venue-backed exhibition that visitors can discover and book", async () => {
+    const venue = await request(app.getHttpServer())
+      .post("/api/venues")
+      .set("Authorization", `Bearer ${organizerToken}`)
+      .send({
+        title: "Riverfront Media Hall",
+        district: "District 7",
+        address: "12 Ton Dat Tien, District 7, Ho Chi Minh City",
+        city: "Ho Chi Minh City",
+        latitude: 10.7294,
+        longitude: 106.7218,
+      })
+      .expect(201);
+
+    const draft = await request(app.getHttpServer())
+      .post("/api/exhibitions/drafts")
+      .set("Authorization", `Bearer ${organizerToken}`)
+      .expect(201);
+
+    const exhibitionId = draft.body.exhibitionId;
+
+    const savedDraft = await request(app.getHttpServer())
+      .patch(`/api/exhibitions/${exhibitionId}/editor`)
+      .set("Authorization", `Bearer ${organizerToken}`)
+      .send({
+        title: "River Signals",
+        exhibitionType: "Digital Art",
+        bio: "A projection-led riverfront exhibition with timed small-group entries.",
+        venueId: venue.body.id,
+        mediaUrls: ["https://example.invalid/river-signals/poster.jpg"],
+        curatorNote: "Open the river route five minutes before the main slot.",
+        policyText: "Arrive 10 minutes early for headset pickup.",
+        highlightList: ["Projection wall", "Sound cue route"],
+        sessions: [
+          {
+            startsAt: "2026-06-12T11:00:00.000Z",
+            endsAt: "2026-06-12T12:15:00.000Z",
+            capacity: 18,
+            waitlistCapacity: 6,
+            vibe: "Quiet guided route",
+          },
+        ],
+      })
+      .expect(200);
+
+    expect(savedDraft.body.availableVenues).toEqual(expect.arrayContaining([expect.objectContaining({ id: venue.body.id })]));
+
+    const hiddenFromDiscover = await request(app.getHttpServer()).get("/api/exhibitions").expect(200);
+    expect(hiddenFromDiscover.body).not.toEqual(expect.arrayContaining([expect.objectContaining({ id: exhibitionId })]));
+
+    await request(app.getHttpServer())
+      .put(`/api/form-schemas/${exhibitionId}/editor`)
+      .set("Authorization", `Bearer ${organizerToken}`)
+      .send({
+        consentTitle: "Confirm your riverfront session",
+        consentCopy: "Used for check-in and session pacing.",
+        fields: [
+          {
+            id: "full-name",
+            label: "Full name",
+            type: "TEXT",
+            placeholder: "Your full name",
+            isRequired: true,
+            options: [],
+            helpText: "Used for arrival check-in.",
+            order: 1,
+          },
+          {
+            id: "email",
+            label: "Email",
+            type: "EMAIL",
+            placeholder: "name@example.com",
+            isRequired: true,
+            options: [],
+            helpText: "Used for confirmation updates.",
+            order: 2,
+          },
+        ],
+      })
+      .expect(200);
+
+    const published = await request(app.getHttpServer())
+      .post(`/api/exhibitions/${exhibitionId}/publish`)
+      .set("Authorization", `Bearer ${organizerToken}`)
+      .expect(201);
+
+    expect(published.body).toEqual(expect.objectContaining({ exhibitionId, status: "PUBLISHED" }));
+
+    const discover = await request(app.getHttpServer()).get("/api/exhibitions").expect(200);
+    expect(discover.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: exhibitionId,
+          title: "River Signals",
+          venueTitle: "Riverfront Media Hall",
+          latitude: 10.7294,
+          longitude: 106.7218,
+        }),
+      ])
+    );
+
+    const sessions = await request(app.getHttpServer()).get("/api/sessions").query({ exhibitionId }).expect(200);
+    const sessionId = sessions.body[0].sessionId;
+
+    const registrationDraft = await request(app.getHttpServer())
+      .get("/api/registrations/draft")
+      .query({ exhibitionId, sessionId })
+      .expect(200);
+
+    const registration = await request(app.getHttpServer())
+      .post("/api/registrations")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        sessionId,
+        formSchemaVersionId: registrationDraft.body.formSchemaVersionId,
+        answers: [
+          { formFieldId: "full-name", value: "Phase Two Visitor" },
+          { formFieldId: "email", value: "phase2.visitor@example.com" },
+        ],
+      })
+      .expect(201);
+
+    expect(registration.body).toEqual(expect.objectContaining({ status: "CONFIRMED" }));
+  });
 });
