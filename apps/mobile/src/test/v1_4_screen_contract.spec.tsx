@@ -722,7 +722,7 @@ describe("v1.4 screen contract smoke", () => {
 
   it("mounts Screen 12 Submission Pipeline", () => {
     renderWithClient(<SubmissionPipelineScreen onOpenSubmissions={jest.fn()} />);
-    expect(screen.getByText("Submission pipeline")).toBeOnTheScreen();
+    expect(screen.getByText("Queue operations")).toBeOnTheScreen();
   });
 
   it("mounts Screen 13 Submission Review and Organizer Profile contracts", async () => {
