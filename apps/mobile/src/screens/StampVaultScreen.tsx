@@ -78,78 +78,7 @@ export function StampVaultScreen({ profile, onOpenGallery }: StampVaultScreenPro
 
   const progress = progressQuery.data;
 
-  // INJECT DEMO MOCK DATA
-  if (progress) {
-    progress.confirmedStamps = [
-      {
-        id: "mock-conf-1",
-        exhibitionId: "g-01",
-        source: "ATTENDANCE",
-        title: "Luminous Spaces",
-        note: "Verified check-in via QR",
-        milestone: "First Attendance",
-        vaultSection: "CONFIRMED",
-        unlockedAt: new Date(Date.now() - 86400000).toISOString(),
-        accent: palette.accent,
-      },
-      {
-        id: "mock-conf-2",
-        exhibitionId: "g-02",
-        source: "MILESTONE",
-        title: "Roots in Motion",
-        note: "Left a verified review",
-        milestone: "Community Voice",
-        vaultSection: "CONFIRMED",
-        unlockedAt: new Date(Date.now() - 172800000).toISOString(),
-        accent: palette.success,
-      }
-    ];
-
-    progress.upcomingStamps = [
-      {
-        id: "mock-up-1",
-        exhibitionId: "g-04",
-        source: "ATTENDANCE",
-        title: "Abstract Forms",
-        note: "General admission secured",
-        milestone: "Loyal Explorer",
-        vaultSection: "UPCOMING",
-        unlockedAt: undefined,
-        accent: palette.gold,
-      },
-      {
-        id: "mock-up-2",
-        exhibitionId: "g-05",
-        source: "ATTENDANCE",
-        title: "Echoes of the Past",
-        note: "Waitlist promoted",
-        milestone: "VIP Guest",
-        vaultSection: "UPCOMING",
-        unlockedAt: undefined,
-        accent: palette.warning,
-      }
-    ];
-
-    progress.expiredStamps = [
-      {
-        id: "mock-exp-1",
-        exhibitionId: "g-03",
-        source: "ATTENDANCE",
-        title: "Future Nostalgia",
-        note: "Did not check in",
-        milestone: "No-show",
-        vaultSection: "EXPIRED",
-        unlockedAt: undefined,
-        accent: palette.accentStrong,
-      }
-    ];
-
-    progress.history = [...progress.confirmedStamps];
-    progress.confirmedCount = progress.confirmedStamps.length;
-    progress.upcomingCount = progress.upcomingStamps.length;
-    progress.expiredCount = progress.expiredStamps.length;
-    progress.totalUnlocked = progress.confirmedCount;
-  }
+  // Mock data has been removed for clearer demonstrations of newly earned stamps.
 
   return (
     <ScreenShell>

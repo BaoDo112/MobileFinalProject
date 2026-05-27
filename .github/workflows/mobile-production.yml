@@ -7,11 +7,9 @@ on:
         description: Platform to build on EAS
         type: choice
         required: true
-        default: all
+        default: android
         options:
-          - all
           - android
-          - ios
 
 concurrency:
   group: mobile-production-${{ github.ref }}

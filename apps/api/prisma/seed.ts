@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 import { buildRuntimeSeed, v14WorkflowSeed } from "../src/persistence/runtime-seed";
 
@@ -7,7 +7,7 @@ async function main() {
 
   try {
     const state = buildRuntimeSeed(new Date());
-    const serializedState = structuredClone(state) as unknown as Prisma.InputJsonValue;
+    const serializedState = structuredClone(state) as any;
     await prisma.runtimeState.upsert({
       where: { key: "app-state" },
       update: { value: serializedState },

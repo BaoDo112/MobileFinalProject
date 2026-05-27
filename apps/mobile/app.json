@@ -17,8 +17,11 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.arthera.mobile",
-      "buildNumber": "1"
+      "bundleIdentifier": "com.artherateam.arthera",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,7 +29,7 @@
         "backgroundColor": "#fffdf0"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.arthera.mobile",
+      "package": "com.artherateam.arthera",
       "versionCode": 1
     },
     "web": {
@@ -34,7 +37,8 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font"
     ],
     "extra": {
       "apiUrl": "http://192.168.1.98:3100",

@@ -1,8 +1,15 @@
 {
   "expo": {
+    "slug": "arthera",
     "extra": {
       "eas": {
         "projectId": "af9250c9-47cd-4ee9-a561-ce6680a47f3e"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.artherateam.arthera",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     }
   }
