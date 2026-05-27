@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "nest start --watch",
     "start": "nest start",
-    "build": "nest build",
-    "lint": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.spec.json",
+    "build": "pnpm prisma:generate && nest build",
+    "lint": "pnpm prisma:generate && tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.spec.json",
     "test": "pnpm prisma:generate && pnpm test:unit && pnpm test:integration && pnpm test:smoke",
     "test:unit": "jest --config ./jest.config.cjs --runInBand --testPathPattern=unit\\.spec\\.ts$",
     "test:integration": "jest --config ./jest.config.cjs --runInBand --testPathPattern=integration\\.spec\\.ts$",
